@@ -1,0 +1,308 @@
+{
+  "app": {
+    "name": "Conecteja",
+    "tagline": "Encontre profissionais perto de você",
+    "version": "Versão 1.0.0",
+    "copyright": "© 2025 Todos os direitos reservados"
+  },
+  "navigation": {
+    "home": "Início",
+    "search": "Buscar",
+    "bookings": "Reservas",
+    "chats": "Chat",
+    "profile": "Perfil",
+    "back": "Voltar"
+  },
+  "auth": {
+    "login": {
+      "title": "Conecteja",
+      "subtitle": "Encontre profissionais perto de você",
+      "email": "Email",
+      "emailPlaceholder": "seu@email.com",
+      "password": "Senha",
+      "passwordPlaceholder": "••••••••",
+      "loginButton": "Entrar",
+      "orContinueWith": "ou continue com",
+      "continueGoogle": "🌐 Continuar com Google",
+      "continueApple": "🍎 Continuar com Apple",
+      "noAccount": "Não tem conta? ",
+      "signUp": "Cadastre-se",
+      "errors": {
+        "invalidCredentials": "Email ou senha incorretos",
+        "emailRequired": "O email é obrigatório",
+        "emailInvalid": "Email inválido",
+        "passwordRequired": "A senha é obrigatória",
+        "passwordMinLength": "A senha deve ter no mínimo 6 caracteres",
+        "generic": "Ocorreu um erro ao fazer login. Tente novamente."
+      }
+    },
+    "register": {
+      "title": "Criar Conta",
+      "subtitle": "Complete seus dados para começar",
+      "fullName": "Nome Completo",
+      "fullNamePlaceholder": "João Silva",
+      "email": "Email",
+      "emailPlaceholder": "seu@email.com",
+      "password": "Senha",
+      "passwordPlaceholder": "Mínimo 8 caracteres",
+      "confirmPassword": "Confirmar Senha",
+      "confirmPasswordPlaceholder": "Repita sua senha",
+      "userTypeQuestion": "Como deseja usar o Conecteja?",
+      "userTypeClient": "Buscar profissionais",
+      "userTypeProfessional": "Oferecer meus serviços",
+      "acceptTerms": "Aceito os Termos e Condições e a Política de Privacidade",
+      "createButton": "Criar Conta",
+      "haveAccount": "Já tem conta? ",
+      "signIn": "Entre"
+    },
+    "onboarding": {
+      "skip": "Pular",
+      "next": "Próximo",
+      "start": "Começar",
+      "slide1": {
+        "title": "Encontre Profissionais",
+        "description": "Busque e conecte-se com profissionais verificados perto de você"
+      },
+      "slide2": {
+        "title": "Avaliações Verificadas",
+        "description": "Leia opiniões reais de outros usuários antes de contratar"
+      },
+      "slide3": {
+        "title": "Comunicação Direta",
+        "description": "Converse diretamente com profissionais ou contate por WhatsApp"
+      },
+      "slide4": {
+        "title": "Agende Facilmente",
+        "description": "Reserve serviços de forma rápida e segura"
+      }
+    }
+  },
+  "home": {
+    "greeting": "Olá, Usuário 👋",
+    "question": "Que serviço você precisa hoje?",
+    "searchPlaceholder": "Buscar profissionais...",
+    "categories": "Categorias",
+    "nearYou": "Perto de você",
+    "viewAll": "Ver todos",
+    "categoryNames": {
+      "plumbing": "Encanamento",
+      "electricity": "Eletricidade",
+      "carpentry": "Carpintaria",
+      "cleaning": "Limpeza",
+      "painting": "Pintura"
+    }
+  },
+  "search": {
+    "title": "Buscar Profissionais",
+    "placeholder": "Ex: Encanador, eletricista...",
+    "filters": {
+      "verified": "Verificados",
+      "premium": "Premium",
+      "nearMe": "Perto de mim",
+      "rating": "4+ estrelas"
+    },
+    "resultsCount": "{{count}} profissionais encontrados",
+    "empty": {
+      "title": "Nenhum resultado",
+      "description": "Tente outros termos de busca ou filtros",
+      "action": "Limpar filtros"
+    },
+    "filterModal": {
+      "title": "Filtros",
+      "maxDistance": "Distância máxima",
+      "minRating": "Avaliação mínima",
+      "price": "Preço",
+      "apply": "Aplicar Filtros"
+    }
+  },
+  "professional": {
+    "premium": "⭐ Premium",
+    "reviews": "{{count}} avaliações",
+    "stats": {
+      "experience": "Anos experiência",
+      "completed": "Trabalhos concluídos",
+      "responseTime": "Tempo resposta"
+    },
+    "tabs": {
+      "services": "Serviços",
+      "reviews": "Avaliações",
+      "about": "Sobre"
+    },
+    "aboutMe": "Sobre mim",
+    "gallery": "Galeria",
+    "buttons": {
+      "chat": "💬 Chat",
+      "book": "📅 Reservar"
+    }
+  },
+  "bookings": {
+    "title": "Minhas Reservas",
+    "tabs": {
+      "upcoming": "Próximas",
+      "completed": "Concluídas",
+      "cancelled": "Canceladas"
+    },
+    "empty": {
+      "title": "Nenhuma reserva",
+      "descriptionUpcoming": "Você ainda não tem reservas programadas",
+      "descriptionOther": "Não há reservas nesta categoria",
+      "action": "Buscar profissionais"
+    },
+    "detail": {
+      "title": "Detalhes da Reserva",
+      "status": {
+        "confirmed": "Confirmada",
+        "pending": "Pendente",
+        "completed": "Concluída"
+      },
+      "role": "Encanador Profissional",
+      "notes": "Notas",
+      "buttons": {
+        "contact": "💬 Contatar Profissional",
+        "reschedule": "📅 Reagendar",
+        "cancel": "❌ Cancelar Reserva",
+        "review": "⭐ Deixar Avaliação"
+      }
+    }
+  },
+  "chats": {
+    "title": "Mensagens",
+    "searchPlaceholder": "Buscar conversas...",
+    "tabs": {
+      "all": "Todos",
+      "unread": "Não lidos"
+    },
+    "empty": {
+      "title": "Nenhuma conversa",
+      "description": "Comece a conversar com profissionais"
+    },
+    "detail": {
+      "online": "Online",
+      "placeholder": "Digite uma mensagem..."
+    }
+  },
+  "profile": {
+    "title": "Perfil",
+    "freePlan": "Plano Gratuito",
+    "statistics": "Estatísticas",
+    "stats": {
+      "visits": "Visitas",
+      "contacts": "Contatos"
+    },
+    "menu": {
+      "editProfile": "Editar Perfil",
+      "subscription": "Minha Assinatura",
+      "favorites": "Favoritos",
+      "settings": "Configurações",
+      "help": "Ajuda e Suporte",
+      "logout": "Sair"
+    },
+    "upgradeToPremium": "⭐ Atualizar para Premium",
+    "edit": {
+      "title": "Editar Perfil",
+      "changePhoto": "Alterar Foto",
+      "fullName": "Nome Completo",
+      "fullNamePlaceholder": "Seu nome",
+      "email": "Email",
+      "emailPlaceholder": "seu@email.com",
+      "phone": "Telefone",
+      "phonePlaceholder": "+55 11 91234-5678",
+      "bio": "Biografia",
+      "bioPlaceholder": "Conte-nos sobre você...",
+      "saveButton": "Salvar Alterações",
+      "cancelButton": "Cancelar"
+    }
+  },
+  "settings": {
+    "title": "Configurações",
+    "notifications": {
+      "title": "Notificações",
+      "push": "Notificações Push",
+      "email": "Notificações por Email"
+    },
+    "privacy": {
+      "title": "Privacidade",
+      "shareLocation": "Compartilhar localização"
+    },
+    "general": {
+      "title": "Geral",
+      "language": "Idioma",
+      "privacyPolicy": "Política de Privacidade",
+      "terms": "Termos e Condições",
+      "about": "Sobre"
+    },
+    "deleteAccount": {
+      "title": "Excluir Conta",
+      "description": "Esta ação é permanente"
+    },
+    "footer": "Conecteja v1.0.0"
+  },
+  "subscription": {
+    "title": "Planos e Assinatura",
+    "alert": "Escolha o plano que melhor se adapta às suas necessidades. Cancele quando quiser.",
+    "subtitle": "Para Profissionais",
+    "description": "Aumente sua visibilidade e consiga mais clientes",
+    "plans": {
+      "free": {
+        "name": "Gratuito",
+        "features": [
+          "Busca de profissionais",
+          "3 contatos por semana",
+          "Chat básico",
+          "Avaliações e classificações"
+        ]
+      },
+      "starter": {
+        "name": "Starter",
+        "features": [
+          "Tudo do plano Gratuito",
+          "Contatos ilimitados",
+          "Chat com imagens",
+          "Acesso direto ao WhatsApp",
+          "Sem publicidade"
+        ]
+      },
+      "premium": {
+        "name": "Premium",
+        "features": [
+          "Tudo do plano Starter",
+          "Badge Premium no seu perfil",
+          "Prioridade nas buscas",
+          "Estatísticas detalhadas",
+          "Suporte prioritário",
+          "Verificação expressa"
+        ]
+      }
+    },
+    "whyUpgrade": {
+      "title": "Por que atualizar para Premium?",
+      "features": [
+        "• Apareça primeiro nas buscas",
+        "• Mais contatos = mais clientes",
+        "• Credibilidade com badge verificado",
+        "• Analise seu desempenho com estatísticas"
+      ]
+    },
+    "footer": "Os preços estão em dólares americanos. Será renovado automaticamente a menos que seja cancelado."
+  },
+  "common": {
+    "loading": "Carregando...",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "apply": "Aplicar",
+    "close": "Fechar",
+    "confirm": "Confirmar",
+    "yes": "Sim",
+    "no": "Não",
+    "ok": "OK",
+    "error": "Erro",
+    "success": "Sucesso",
+    "from": "Desde",
+    "hour": "hora",
+    "perHour": "/hora"
+  }
+}

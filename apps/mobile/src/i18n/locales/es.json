@@ -1,0 +1,308 @@
+{
+  "app": {
+    "name": "Conecteja",
+    "tagline": "Encuentra profesionales cerca de ti",
+    "version": "Versión 1.0.0",
+    "copyright": "© 2025 Todos los derechos reservados"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "search": "Buscar",
+    "bookings": "Reservas",
+    "chats": "Chat",
+    "profile": "Perfil",
+    "back": "Volver"
+  },
+  "auth": {
+    "login": {
+      "title": "Conecteja",
+      "subtitle": "Encuentra profesionales cerca de ti",
+      "email": "Email",
+      "emailPlaceholder": "tu@email.com",
+      "password": "Contraseña",
+      "passwordPlaceholder": "••••••••",
+      "loginButton": "Iniciar Sesión",
+      "orContinueWith": "o continúa con",
+      "continueGoogle": "🌐 Continuar con Google",
+      "continueApple": "🍎 Continuar con Apple",
+      "noAccount": "¿No tienes cuenta? ",
+      "signUp": "Regístrate",
+      "errors": {
+        "invalidCredentials": "Email o contraseña incorrectos",
+        "emailRequired": "El email es obligatorio",
+        "emailInvalid": "Email inválido",
+        "passwordRequired": "La contraseña es obligatoria",
+        "passwordMinLength": "La contraseña debe tener al menos 6 caracteres",
+        "generic": "Ocurrió un error al iniciar sesión. Intenta nuevamente."
+      }
+    },
+    "register": {
+      "title": "Crear Cuenta",
+      "subtitle": "Completa tus datos para comenzar",
+      "fullName": "Nombre Completo",
+      "fullNamePlaceholder": "Juan Pérez",
+      "email": "Email",
+      "emailPlaceholder": "tu@email.com",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Mínimo 8 caracteres",
+      "confirmPassword": "Confirmar Contraseña",
+      "confirmPasswordPlaceholder": "Repite tu contraseña",
+      "userTypeQuestion": "¿Cómo quieres usar Conecteja?",
+      "userTypeClient": "Buscar profesionales",
+      "userTypeProfessional": "Ofrecer mis servicios",
+      "acceptTerms": "Acepto los Términos y Condiciones y la Política de Privacidad",
+      "createButton": "Crear Cuenta",
+      "haveAccount": "¿Ya tienes cuenta? ",
+      "signIn": "Inicia Sesión"
+    },
+    "onboarding": {
+      "skip": "Saltar",
+      "next": "Siguiente",
+      "start": "Comenzar",
+      "slide1": {
+        "title": "Encuentra Profesionales",
+        "description": "Busca y conecta con profesionales verificados cerca de ti"
+      },
+      "slide2": {
+        "title": "Reseñas Verificadas",
+        "description": "Lee opiniones reales de otros usuarios antes de contratar"
+      },
+      "slide3": {
+        "title": "Comunicación Directa",
+        "description": "Chatea directamente con profesionales o contacta por WhatsApp"
+      },
+      "slide4": {
+        "title": "Agenda Fácilmente",
+        "description": "Reserva servicios de forma rápida y segura"
+      }
+    }
+  },
+  "home": {
+    "greeting": "Hola, Usuario 👋",
+    "question": "¿Qué servicio necesitas hoy?",
+    "searchPlaceholder": "Buscar profesionales...",
+    "categories": "Categorías",
+    "nearYou": "Cerca de ti",
+    "viewAll": "Ver todos",
+    "categoryNames": {
+      "plumbing": "Plomería",
+      "electricity": "Electricidad",
+      "carpentry": "Carpintería",
+      "cleaning": "Limpieza",
+      "painting": "Pintura"
+    }
+  },
+  "search": {
+    "title": "Buscar Profesionales",
+    "placeholder": "Ej: Plomero, electricista...",
+    "filters": {
+      "verified": "Verificados",
+      "premium": "Premium",
+      "nearMe": "Cerca de mí",
+      "rating": "4+ estrellas"
+    },
+    "resultsCount": "{{count}} profesionales encontrados",
+    "empty": {
+      "title": "No hay resultados",
+      "description": "Intenta con otros términos de búsqueda o filtros",
+      "action": "Limpiar filtros"
+    },
+    "filterModal": {
+      "title": "Filtros",
+      "maxDistance": "Distancia máxima",
+      "minRating": "Calificación mínima",
+      "price": "Precio",
+      "apply": "Aplicar Filtros"
+    }
+  },
+  "professional": {
+    "premium": "⭐ Premium",
+    "reviews": "{{count}} reseñas",
+    "stats": {
+      "experience": "Años experiencia",
+      "completed": "Trabajos completados",
+      "responseTime": "Tiempo respuesta"
+    },
+    "tabs": {
+      "services": "Servicios",
+      "reviews": "Reseñas",
+      "about": "Acerca de"
+    },
+    "aboutMe": "Sobre mí",
+    "gallery": "Galería",
+    "buttons": {
+      "chat": "💬 Chat",
+      "book": "📅 Reservar"
+    }
+  },
+  "bookings": {
+    "title": "Mis Reservas",
+    "tabs": {
+      "upcoming": "Próximas",
+      "completed": "Completadas",
+      "cancelled": "Canceladas"
+    },
+    "empty": {
+      "title": "No hay reservas",
+      "descriptionUpcoming": "Aún no tienes reservas programadas",
+      "descriptionOther": "No hay reservas en esta categoría",
+      "action": "Buscar profesionales"
+    },
+    "detail": {
+      "title": "Detalles de Reserva",
+      "status": {
+        "confirmed": "Confirmada",
+        "pending": "Pendiente",
+        "completed": "Completada"
+      },
+      "role": "Plomero Profesional",
+      "notes": "Notas",
+      "buttons": {
+        "contact": "💬 Contactar Profesional",
+        "reschedule": "📅 Reagendar",
+        "cancel": "❌ Cancelar Reserva",
+        "review": "⭐ Dejar Reseña"
+      }
+    }
+  },
+  "chats": {
+    "title": "Mensajes",
+    "searchPlaceholder": "Buscar conversaciones...",
+    "tabs": {
+      "all": "Todos",
+      "unread": "No leídos"
+    },
+    "empty": {
+      "title": "No hay conversaciones",
+      "description": "Comienza a chatear con profesionales"
+    },
+    "detail": {
+      "online": "En línea",
+      "placeholder": "Escribe un mensaje..."
+    }
+  },
+  "profile": {
+    "title": "Perfil",
+    "freePlan": "Plan Gratuito",
+    "statistics": "Estadísticas",
+    "stats": {
+      "visits": "Visitas",
+      "contacts": "Contactos"
+    },
+    "menu": {
+      "editProfile": "Editar Perfil",
+      "subscription": "Mi Suscripción",
+      "favorites": "Favoritos",
+      "settings": "Configuración",
+      "help": "Ayuda y Soporte",
+      "logout": "Cerrar Sesión"
+    },
+    "upgradeToPremium": "⭐ Actualizar a Premium",
+    "edit": {
+      "title": "Editar Perfil",
+      "changePhoto": "Cambiar Foto",
+      "fullName": "Nombre Completo",
+      "fullNamePlaceholder": "Tu nombre",
+      "email": "Email",
+      "emailPlaceholder": "tu@email.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "+54 11 1234-5678",
+      "bio": "Biografía",
+      "bioPlaceholder": "Cuéntanos sobre ti...",
+      "saveButton": "Guardar Cambios",
+      "cancelButton": "Cancelar"
+    }
+  },
+  "settings": {
+    "title": "Configuración",
+    "notifications": {
+      "title": "Notificaciones",
+      "push": "Notificaciones Push",
+      "email": "Notificaciones por Email"
+    },
+    "privacy": {
+      "title": "Privacidad",
+      "shareLocation": "Compartir ubicación"
+    },
+    "general": {
+      "title": "General",
+      "language": "Idioma",
+      "privacyPolicy": "Política de Privacidad",
+      "terms": "Términos y Condiciones",
+      "about": "Acerca de"
+    },
+    "deleteAccount": {
+      "title": "Eliminar Cuenta",
+      "description": "Esta acción es permanente"
+    },
+    "footer": "Conecteja v1.0.0"
+  },
+  "subscription": {
+    "title": "Planes y Suscripción",
+    "alert": "Elige el plan que mejor se adapte a tus necesidades. Cancela cuando quieras.",
+    "subtitle": "Para Profesionales",
+    "description": "Aumenta tu visibilidad y consigue más clientes",
+    "plans": {
+      "free": {
+        "name": "Gratuito",
+        "features": [
+          "Búsqueda de profesionales",
+          "3 contactos por semana",
+          "Chat básico",
+          "Reseñas y calificaciones"
+        ]
+      },
+      "starter": {
+        "name": "Starter",
+        "features": [
+          "Todo lo del plan Gratuito",
+          "Contactos ilimitados",
+          "Chat con imágenes",
+          "Acceso a WhatsApp directo",
+          "Sin publicidad"
+        ]
+      },
+      "premium": {
+        "name": "Premium",
+        "features": [
+          "Todo lo del plan Starter",
+          "Badge Premium en tu perfil",
+          "Prioridad en búsquedas",
+          "Estadísticas detalladas",
+          "Soporte prioritario",
+          "Verificación express"
+        ]
+      }
+    },
+    "whyUpgrade": {
+      "title": "¿Por qué actualizar a Premium?",
+      "features": [
+        "• Aparece primero en búsquedas",
+        "• Más contactos = más clientes",
+        "• Credibilidad con badge verificado",
+        "• Analiza tu rendimiento con estadísticas"
+      ]
+    },
+    "footer": "Los precios están en dólares estadounidenses. Se renovará automáticamente a menos que se cancele."
+  },
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "apply": "Aplicar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
+    "ok": "OK",
+    "error": "Error",
+    "success": "Éxito",
+    "from": "Desde",
+    "hour": "hora",
+    "perHour": "/hora"
+  }
+}

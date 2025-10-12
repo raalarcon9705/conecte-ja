@@ -1,0 +1,27 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@conecteja/constants": ["libs/shared/constants/src/index.ts"],
+      "@conecteja/supabase": ["libs/supabase/src/index.ts"],
+      "@conecteja/types": ["libs/shared/types/src/index.ts"],
+      "@conecteja/ui-mobile": ["libs/ui-mobile/src/index.ts"],
+      "@conecteja/ui-web": ["libs/ui-web/src/index.ts"],
+      "@conecteja/utils": ["libs/shared/utils/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

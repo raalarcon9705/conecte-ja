@@ -1,36 +1,25 @@
 /** @jsxImportSource nativewind */
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Screen, Text, Input, Button, Spacer, Divider } from '@conecteja/ui-mobile';
+import { Screen, Text, Input, Button, Spacer, Divider, Alert } from '@conecteja/ui-mobile';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createClient } from '@conecteja/supabase';
+import { LoginSchema, loginSchema } from '@conecteja/schemas';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginScreen({ navigation }: any) {
   const { t } = useTranslation();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
-
-  // Schema de validación con Zod
-  const loginSchema = z.object({
-    email: z
-      .string({ required_error: t('auth.login.errors.emailRequired') })
-      .min(1, t('auth.login.errors.emailRequired'))
-      .email(t('auth.login.errors.emailInvalid')),
-    password: z
-      .string({ required_error: t('auth.login.errors.passwordRequired') })
-      .min(6, t('auth.login.errors.passwordMinLength')),
-  });
-
-  type LoginFormData = z.infer<typeof loginSchema>;
 
   const {
     control,
     handleSubmit,
     formState: { errors, isValid },
-  } = useForm<LoginFormData>({
+  } = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
     defaultValues: {
@@ -39,7 +28,7 @@ export default function LoginScreen({ navigation }: any) {
     },
   });
 
-  const onSubmit = async (formData: LoginFormData) => {
+  const onSubmit = async (formData: LoginSchema) => {
     setLoading(true);
     setApiError('');
 
@@ -62,12 +51,7 @@ export default function LoginScreen({ navigation }: any) {
       }
 
       if (data?.user) {
-        // Login exitoso - navegar a la pantalla principal
-        // TODO: Guardar sesión en AsyncStorage o contexto global
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' }],
-        });
+        login(data.user);
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -90,9 +74,9 @@ export default function LoginScreen({ navigation }: any) {
         </View>
 
         {apiError ? (
-          <View className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-            <Text className="text-red-600 text-sm">{apiError}</Text>
-          </View>
+          <Alert variant="error" className="mb-4">
+            {apiError}
+          </Alert>
         ) : null}
 
         <Controller
@@ -111,7 +95,7 @@ export default function LoginScreen({ navigation }: any) {
               />
               {errors.email && (
                 <Text className="text-red-600 text-xs mt-1">
-                  {errors.email.message}
+                  {t(errors.email.message!)}
                 </Text>
               )}
             </View>
@@ -133,7 +117,7 @@ export default function LoginScreen({ navigation }: any) {
               />
               {errors.password && (
                 <Text className="text-red-600 text-xs mt-1">
-                  {errors.password.message}
+                  {t(errors.password.message!)}
                 </Text>
               )}
             </View>

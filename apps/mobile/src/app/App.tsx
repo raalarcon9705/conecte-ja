@@ -7,6 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import '../i18n';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -87,35 +88,43 @@ function MainTabs() {
   );
 }
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+function AppNavigator() {
+  const { isAuthenticated } = useAuth();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = React.useState(false);
 
   return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!isAuthenticated ? (
+          <>
+            {!hasCompletedOnboarding && (
+              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            )}
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="MainTabs" component={MainTabs} />
+            <Stack.Screen name="ProfessionalDetail" component={ProfessionalDetailScreen} />
+            <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+            <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
+            <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {!isAuthenticated ? (
-            <>
-              {!hasCompletedOnboarding && (
-                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-              )}
-              <Stack.Screen name="Login" component={LoginScreen} />
-              <Stack.Screen name="Register" component={RegisterScreen} />
-            </>
-          ) : (
-            <>
-              <Stack.Screen name="MainTabs" component={MainTabs} />
-              <Stack.Screen name="ProfessionalDetail" component={ProfessionalDetailScreen} />
-              <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
-              <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
-              <Stack.Screen name="Subscription" component={SubscriptionScreen} />
-              <Stack.Screen name="Settings" component={SettingsScreen} />
-              <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-            </>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

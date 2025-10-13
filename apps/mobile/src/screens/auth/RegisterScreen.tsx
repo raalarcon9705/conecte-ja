@@ -2,25 +2,47 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Screen, Text, Input, Button, Spacer, Checkbox, RadioButton } from '@conecteja/ui-mobile';
+import { Screen, Text, Input, Button, Spacer, Checkbox, RadioButton, Alert } from '@conecteja/ui-mobile';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { RegisterSchema, registerSchema } from '@conecteja/schemas';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function RegisterScreen({ navigation }: any) {
   const { t } = useTranslation();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [userType, setUserType] = useState<'client' | 'professional'>('client');
-  const [acceptTerms, setAcceptTerms] = useState(false);
+  const { register } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
 
-  const handleRegister = async () => {
-    if (!acceptTerms) return;
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<RegisterSchema>({
+    resolver: zodResolver(registerSchema),
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      userType: 'client',
+      acceptTerms: false,
+    },
+  });
+
+  const onSubmit = async (formData: RegisterSchema) => {
     setLoading(true);
-    // TODO: Implement register logic
-    setTimeout(() => {
+    setApiError('');
+    try {
+      await register(formData);
+      // Navigate to success screen with email
+      navigation.navigate('RegistrationSuccess', { email: formData.email });
+    } catch (error: any) {
+      setApiError(error.message || t('auth.register.errors.generic'));
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -33,36 +55,98 @@ export default function RegisterScreen({ navigation }: any) {
           {t('auth.register.subtitle')}
         </Text>
 
-        <Input
-          label={t('auth.register.fullName')}
-          placeholder={t('auth.register.fullNamePlaceholder')}
-          value={name}
-          onChangeText={setName}
+        {apiError ? (
+          <Alert variant="error" className="mb-4">
+            {apiError}
+          </Alert>
+        ) : null}
+
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <View className="mb-4">
+              <Input
+                label={t('auth.register.fullName')}
+                placeholder={t('auth.register.fullNamePlaceholder')}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+              />
+              {errors.name && (
+                <Text className="text-red-600 text-xs mt-1">
+                  {t(errors.name.message!)}
+                </Text>
+              )}
+            </View>
+          )}
         />
 
-        <Input
-          label={t('auth.register.email')}
-          placeholder={t('auth.register.emailPlaceholder')}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <View className="mb-4">
+              <Input
+                label={t('auth.register.email')}
+                placeholder={t('auth.register.emailPlaceholder')}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              {errors.email && (
+                <Text className="text-red-600 text-xs mt-1">
+                  {t(errors.email.message!)}
+                </Text>
+              )}
+            </View>
+          )}
         />
 
-        <Input
-          label={t('auth.register.password')}
-          placeholder={t('auth.register.passwordPlaceholder')}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <View className="mb-4">
+              <Input
+                label={t('auth.register.password')}
+                placeholder={t('auth.register.passwordPlaceholder')}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry
+              />
+              {errors.password && (
+                <Text className="text-red-600 text-xs mt-1">
+                  {t(errors.password.message!)}
+                </Text>
+              )}
+            </View>
+          )}
         />
 
-        <Input
-          label={t('auth.register.confirmPassword')}
-          placeholder={t('auth.register.confirmPasswordPlaceholder')}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
+        <Controller
+          control={control}
+          name="confirmPassword"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <View className="mb-4">
+              <Input
+                label={t('auth.register.confirmPassword')}
+                placeholder={t('auth.register.confirmPasswordPlaceholder')}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry
+              />
+              {errors.confirmPassword && (
+                <Text className="text-red-600 text-xs mt-1">
+                  {t(errors.confirmPassword.message!)}
+                </Text>
+              )}
+            </View>
+          )}
         />
 
         <Spacer size="md" />
@@ -71,36 +155,53 @@ export default function RegisterScreen({ navigation }: any) {
           {t('auth.register.userTypeQuestion')}
         </Text>
 
-        <View className="mb-4">
-          <RadioButton
-            selected={userType === 'client'}
-            onSelect={() => setUserType('client')}
-            label={t('auth.register.userTypeClient')}
-          />
-          <Spacer size="sm" />
-          <RadioButton
-            selected={userType === 'professional'}
-            onSelect={() => setUserType('professional')}
-            label={t('auth.register.userTypeProfessional')}
-          />
-        </View>
+        <Controller
+          control={control}
+          name="userType"
+          render={({ field: { value, onChange } }) => (
+            <View className="mb-4">
+              <RadioButton
+                selected={value === 'client'}
+                onSelect={() => onChange('client')}
+                label={t('auth.register.userTypeClient')}
+              />
+              <Spacer size="sm" />
+              <RadioButton
+                selected={value === 'professional'}
+                onSelect={() => onChange('professional')}
+                label={t('auth.register.userTypeProfessional')}
+              />
+            </View>
+          )}
+        />
 
         <Spacer size="md" />
 
-        <Checkbox
-          checked={acceptTerms}
-          onChange={setAcceptTerms}
-          label={t('auth.register.acceptTerms')}
+        <Controller
+          control={control}
+          name="acceptTerms"
+          render={({ field: { value, onChange } }) => (
+            <Checkbox
+              checked={value}
+              onChange={onChange}
+              label={t('auth.register.acceptTerms')}
+            />
+          )}
         />
+        {errors.acceptTerms && (
+          <Text className="text-red-600 text-xs mt-1">
+            {t(errors.acceptTerms.message!)}
+          </Text>
+        )}
 
         <Spacer size="lg" />
 
         <Button
           variant="primary"
-          onPress={handleRegister}
+          onPress={handleSubmit(onSubmit)}
           loading={loading}
           fullWidth
-          disabled={!acceptTerms}
+          disabled={!isValid || loading}
         >
           {t('auth.register.createButton')}
         </Button>

@@ -1,6 +1,8 @@
 /** @jsxImportSource nativewind */
 import React from 'react';
 import { View, Text, ViewProps } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Check } from 'lucide-react-native';
 
 export interface VerificationBadgeProps extends ViewProps {
   isVerified: boolean;
@@ -15,6 +17,8 @@ export function VerificationBadge({
   className = '',
   ...props
 }: VerificationBadgeProps) {
+  const { t } = useTranslation();
+  
   if (!isVerified) return null;
 
   const sizeStyles = {
@@ -23,14 +27,20 @@ export function VerificationBadge({
     lg: { badge: 'w-6 h-6', icon: 'text-xs', text: 'text-base' },
   };
 
+  const iconSizes = {
+    sm: 10,
+    md: 12,
+    lg: 14,
+  };
+
   if (showText) {
     return (
       <View className={`flex-row items-center bg-blue-50 px-2 py-1 rounded-full ${className}`} {...props}>
         <View className={`${sizeStyles[size].badge} bg-blue-500 rounded-full items-center justify-center mr-1`}>
-          <Text className={`${sizeStyles[size].icon} text-white font-bold`}>✓</Text>
+          <Check size={iconSizes[size]} color="#ffffff" strokeWidth={3} />
         </View>
         <Text className={`${sizeStyles[size].text} text-blue-700 font-medium`}>
-          Verificado
+          {t('professional.verified')}
         </Text>
       </View>
     );
@@ -41,7 +51,7 @@ export function VerificationBadge({
       className={`${sizeStyles[size].badge} bg-blue-500 rounded-full items-center justify-center ${className}`}
       {...props}
     >
-      <Text className={`${sizeStyles[size].icon} text-white font-bold`}>✓</Text>
+      <Check size={iconSizes[size]} color="#ffffff" strokeWidth={3} />
     </View>
   );
 }

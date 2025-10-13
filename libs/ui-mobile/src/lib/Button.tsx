@@ -1,12 +1,14 @@
 /** @jsxImportSource nativewind */
 import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator, TouchableOpacityProps } from 'react-native';
+import { TouchableOpacity, Text, ActivityIndicator, TouchableOpacityProps, View } from 'react-native';
 
 export interface ButtonProps extends TouchableOpacityProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   fullWidth?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -16,6 +18,8 @@ export function Button({
   loading = false,
   fullWidth = false,
   disabled,
+  leftIcon,
+  rightIcon,
   children,
   className = '',
   ...props
@@ -62,9 +66,13 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? '#2563eb' : '#ffffff'} />
       ) : (
-        <Text className={`${textVariantStyles[variant]} ${textSizeStyles[size]}`}>
-          {children}
-        </Text>
+        <View className="flex-row items-center">
+          {leftIcon && <View className="mr-2">{leftIcon}</View>}
+          <Text className={`${textVariantStyles[variant]} ${textSizeStyles[size]}`}>
+            {children}
+          </Text>
+          {rightIcon && <View className="ml-2">{rightIcon}</View>}
+        </View>
       )}
     </TouchableOpacity>
   );

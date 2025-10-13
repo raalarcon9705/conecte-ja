@@ -41,11 +41,16 @@ export * from './lib/ConversationCard';
 export * from './lib/SubscriptionCard';
 export * from './lib/StatCard';
 export * from './lib/BookingCard';
+export * from './lib/JobPostingCard';
 export * from './lib/FilterChip';
 export * from './lib/LocationTag';
 export * from './lib/PriceTag';
 export * from './lib/VerificationBadge';
 export * from './lib/ImageGallery';
+
+// Map Components
+export * from './lib/LocationMap';
+export * from './lib/NavigationButtons';
 
 // Legacy export (keeping for backwards compatibility)
 export * from './lib/ui-mobile';

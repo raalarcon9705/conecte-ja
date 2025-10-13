@@ -1,6 +1,7 @@
 /** @jsxImportSource nativewind */
 import React, { useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, TextInputProps } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 
 export interface InputProps extends TextInputProps {
   label?: string;
@@ -45,10 +46,12 @@ export function Input({
           {...props}
         />
         {isPassword && (
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Text className="text-gray-500 text-sm">
-              {showPassword ? '👁️' : '👁️‍🗨️'}
-            </Text>
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="ml-2">
+            {showPassword ? (
+              <EyeOff size={20} color="#6b7280" />
+            ) : (
+              <Eye size={20} color="#6b7280" />
+            )}
           </TouchableOpacity>
         )}
         {rightIcon && !isPassword && <View className="ml-2">{rightIcon}</View>}

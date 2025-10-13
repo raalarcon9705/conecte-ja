@@ -120,15 +120,17 @@ async function clearDatabase() {
   await supabase.from('favorites').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('contact_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   
-  // Delete all auth users (this will cascade delete profiles)
-  console.log('🗑️  Eliminando usuarios de autenticación...');
+  // Delete only test auth users (with @example.com email)
+  console.log('🗑️  Eliminando usuarios de prueba (@example.com)...');
   const { data: users } = await supabase.auth.admin.listUsers();
   
   if (users && users.users) {
-    for (const user of users.users) {
+    const testUsers = users.users.filter(user => user.email?.endsWith('@example.com'));
+    
+    for (const user of testUsers) {
       await supabase.auth.admin.deleteUser(user.id);
     }
-    console.log(`✅ ${users.users.length} usuarios eliminados`);
+    console.log(`✅ ${testUsers.length} usuarios de prueba eliminados (de ${users.users.length} totales)`);
   }
   
   console.log('✅ Base de datos limpiada');
@@ -203,6 +205,7 @@ async function createTestUsers(count: number, userType: 'client' | 'professional
       .insert({
         id: authData.user.id,
         user_type: userType,
+        default_mode: userType, // Required field for dual account support
         full_name: `${firstName} ${lastName}`,
         phone: generatePhone(),
         bio: userType === 'professional' 

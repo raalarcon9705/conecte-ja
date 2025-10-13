@@ -21,10 +21,11 @@
       "emailPlaceholder": "seu@email.com",
       "password": "Senha",
       "passwordPlaceholder": "••••••••",
+      "forgotPassword": "Esqueceu sua senha?",
       "loginButton": "Entrar",
       "orContinueWith": "ou continue com",
-      "continueGoogle": "🌐 Continuar com Google",
-      "continueApple": "🍎 Continuar com Apple",
+      "continueGoogle": "Continuar com Google",
+      "continueApple": "Continuar com Apple",
       "noAccount": "Não tem conta? ",
       "signUp": "Cadastre-se",
       "errors": {
@@ -55,6 +56,26 @@
       "haveAccount": "Já tem conta? ",
       "signIn": "Entre"
     },
+    "passwordRecovery": {
+      "title": "Recuperar Senha",
+      "subtitle": "Digite seu email e enviaremos um link para redefinir sua senha",
+      "email": "Email",
+      "emailPlaceholder": "seu@email.com",
+      "successMessage": "Um link de recuperação foi enviado para seu email",
+      "sendButton": "Enviar Link",
+      "backToLogin": "Voltar ao Login",
+      "errors": {
+        "generic": "Ocorreu um erro ao enviar o email. Tente novamente."
+      }
+    },
+    "registrationSuccess": {
+      "title": "Registro Bem-sucedido!",
+      "subtitle": "Enviamos um email de verificação para:",
+      "instructions": "Por favor, verifique sua caixa de entrada e clique no link de verificação para completar seu registro.",
+      "goToLogin": "Ir para Login",
+      "noEmail": "Não recebeu o email?",
+      "checkSpam": "Verifique sua pasta de spam ou lixo eletrônico"
+    },
     "onboarding": {
       "skip": "Pular",
       "next": "Próximo",
@@ -78,18 +99,36 @@
     }
   },
   "home": {
-    "greeting": "Olá, Usuário 👋",
+    "greeting": "Olá, {{name}}",
     "question": "Que serviço você precisa hoje?",
     "searchPlaceholder": "Buscar profissionais...",
     "categories": "Categorias",
     "nearYou": "Perto de você",
     "viewAll": "Ver todos",
+    "noProfessionals": "Não há profissionais disponíveis no momento",
     "categoryNames": {
       "plumbing": "Encanamento",
       "electricity": "Eletricidade",
       "carpentry": "Carpintaria",
       "cleaning": "Limpeza",
       "painting": "Pintura"
+    },
+    "professional": {
+      "greeting": "Olá, {{name}}",
+      "subtitle": "Gerencie seu negócio aqui",
+      "stats": {
+        "title": "Estatísticas",
+        "pendingBookings": "Reservas pendentes",
+        "unreadMessages": "Mensagens não lidas"
+      },
+      "quickActions": "Ações rápidas",
+      "actions": {
+        "viewBookings": "Ver reservas",
+        "viewMessages": "Ver mensagens",
+        "editProfile": "Editar perfil"
+      },
+      "recentActivity": "Atividade recente",
+      "noRecentActivity": "Nenhuma atividade recente"
     }
   },
   "search": {
@@ -116,7 +155,7 @@
     }
   },
   "professional": {
-    "premium": "⭐ Premium",
+    "premium": "Premium",
     "reviews": "{{count}} avaliações",
     "stats": {
       "experience": "Anos experiência",
@@ -131,9 +170,21 @@
     "aboutMe": "Sobre mim",
     "gallery": "Galeria",
     "buttons": {
-      "chat": "💬 Chat",
-      "book": "📅 Reservar"
-    }
+      "chat": "Chat",
+      "book": "Reservar"
+    },
+    "empty": {
+      "services": "Não há serviços disponíveis",
+      "reviews": "Não há avaliações ainda",
+      "description": "Sem descrição"
+    },
+    "defaults": {
+      "name": "Sem nome",
+      "category": "Sem categoria",
+      "service": "Serviço"
+    },
+    "reviewResponse": "Resposta do profissional",
+    "verified": "Verificado"
   },
   "bookings": {
     "title": "Minhas Reservas",
@@ -158,10 +209,10 @@
       "role": "Encanador Profissional",
       "notes": "Notas",
       "buttons": {
-        "contact": "💬 Contatar Profissional",
-        "reschedule": "📅 Reagendar",
-        "cancel": "❌ Cancelar Reserva",
-        "review": "⭐ Deixar Avaliação"
+        "contact": "Contatar Profissional",
+        "reschedule": "Reagendar",
+        "cancel": "Cancelar Reserva",
+        "review": "Deixar Avaliação"
       }
     }
   },
@@ -174,11 +225,13 @@
     },
     "empty": {
       "title": "Nenhuma conversa",
-      "description": "Comece a conversar com profissionais"
+      "description": "Comece a conversar com profissionais. Busque um profissional e inicie uma conversa!"
     },
     "detail": {
       "online": "Online",
-      "placeholder": "Digite uma mensagem..."
+      "placeholder": "Digite uma mensagem...",
+      "startConversation": "Inicie uma conversa",
+      "firstMessageHint": "Digite a primeira mensagem para começar"
     }
   },
   "profile": {
@@ -197,7 +250,7 @@
       "help": "Ajuda e Suporte",
       "logout": "Sair"
     },
-    "upgradeToPremium": "⭐ Atualizar para Premium",
+    "upgradeToPremium": "Atualizar para Premium",
     "edit": {
       "title": "Editar Perfil",
       "changePhoto": "Alterar Foto",
@@ -215,6 +268,25 @@
   },
   "settings": {
     "title": "Configurações",
+    "accountMode": {
+      "title": "Modo de Conta",
+      "modes": {
+        "client": "Modo Cliente",
+        "professional": "Modo Profissional"
+      },
+      "descriptions": {
+        "client": "Buscar e contratar profissionais",
+        "professional": "Gerenciar seu negócio e serviços"
+      },
+      "success": {
+        "title": "Modo alterado",
+        "message": "Você mudou para {{mode}}"
+      },
+      "error": {
+        "title": "Erro",
+        "message": "Não foi possível alterar o modo. Tente novamente."
+      }
+    },
     "notifications": {
       "title": "Notificações",
       "push": "Notificações Push",
@@ -234,6 +306,13 @@
     "deleteAccount": {
       "title": "Excluir Conta",
       "description": "Esta ação é permanente"
+    },
+    "logout": {
+      "processing": "Saindo...",
+      "error": {
+        "title": "Erro ao sair",
+        "message": "Falha ao sair. Por favor, tente novamente."
+      }
     },
     "footer": "Conecteja v1.0.0"
   },

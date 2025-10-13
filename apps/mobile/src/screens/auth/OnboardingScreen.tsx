@@ -1,59 +1,91 @@
 /** @jsxImportSource nativewind */
 import React, { useState } from 'react';
-import { View, ScrollView, Dimensions } from 'react-native';
+import { View, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Screen, Text, Button, Spacer } from '@conecteja/ui-mobile';
-
-const { width } = Dimensions.get('window');
+import { Search, Star, MessageCircle, Calendar } from 'lucide-react-native';
+import { Screen, Text, Button } from '@conecteja/ui-mobile';
+import { setOnboardingCompleted } from '@conecteja/supabase';
 
 export default function OnboardingScreen({ navigation }: any) {
   const { t } = useTranslation();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const slides = [
     {
-      icon: '🔍',
+      icon: <Search size={64} color="#3B82F6" />,
       title: t('auth.onboarding.slide1.title'),
       description: t('auth.onboarding.slide1.description'),
     },
     {
-      icon: '⭐',
+      icon: <Star size={64} color="#F59E0B" />,
       title: t('auth.onboarding.slide2.title'),
       description: t('auth.onboarding.slide2.description'),
     },
     {
-      icon: '💬',
+      icon: <MessageCircle size={64} color="#10B981" />,
       title: t('auth.onboarding.slide3.title'),
       description: t('auth.onboarding.slide3.description'),
     },
     {
-      icon: '📅',
+      icon: <Calendar size={64} color="#8B5CF6" />,
       title: t('auth.onboarding.slide4.title'),
       description: t('auth.onboarding.slide4.description'),
     },
   ];
 
+  const completeOnboarding = async () => {
+    try {
+      setIsCompleting(true);
+      await setOnboardingCompleted();
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      Alert.alert(
+        'Error',
+        'Failed to save onboarding progress. Please try again.',
+        [
+          {
+            text: 'Retry',
+            onPress: completeOnboarding,
+          },
+          {
+            text: 'Continue anyway',
+            onPress: () => navigation.navigate('Login'),
+          },
+        ]
+      );
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
     } else {
-      navigation.navigate('Login');
+      completeOnboarding();
     }
   };
 
   const handleSkip = () => {
-    navigation.navigate('Login');
+    completeOnboarding();
   };
 
   return (
     <Screen safe className="bg-white">
       <View className="flex-1 items-center justify-between py-12 px-6">
-        <Button variant="ghost" onPress={handleSkip} className="self-end">
+        <Button 
+          variant="ghost" 
+          onPress={handleSkip} 
+          className="self-end"
+          disabled={isCompleting}
+        >
           {t('auth.onboarding.skip')}
         </Button>
 
         <View className="flex-1 items-center justify-center">
-          <Text className="text-8xl mb-8">{slides[currentSlide].icon}</Text>
+          <View className="mb-8">{slides[currentSlide].icon}</View>
 
           <Text variant="h2" weight="bold" align="center" className="mb-4">
             {slides[currentSlide].title}
@@ -78,8 +110,18 @@ export default function OnboardingScreen({ navigation }: any) {
             ))}
           </View>
 
-          <Button variant="primary" onPress={handleNext} fullWidth>
-            {currentSlide === slides.length - 1 ? t('auth.onboarding.start') : t('auth.onboarding.next')}
+          <Button 
+            variant="primary" 
+            onPress={handleNext} 
+            fullWidth
+            disabled={isCompleting}
+          >
+            {isCompleting 
+              ? t('common.loading') || 'Loading...'
+              : currentSlide === slides.length - 1 
+                ? t('auth.onboarding.start') 
+                : t('auth.onboarding.next')
+            }
           </Button>
         </View>
       </View>

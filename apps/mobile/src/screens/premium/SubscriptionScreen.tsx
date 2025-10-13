@@ -1,7 +1,8 @@
 /** @jsxImportSource nativewind */
-import React, { useState } from 'react';
-import { View, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, TouchableOpacity, ScrollView, ActivityIndicator, Alert as RNAlert } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft } from 'lucide-react-native';
 import {
   Screen,
   Text,
@@ -10,44 +11,89 @@ import {
   Spacer,
   Alert,
 } from '@conecteja/ui-mobile';
+import { useAuth } from '../../contexts/AuthContext';
+import { useSubscriptions } from '../../contexts/SubscriptionsContext';
 
 export default function SubscriptionScreen({ navigation }: any) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { 
+    currentSubscription, 
+    availablePlans, 
+    loading: subscriptionsLoading,
+    fetchCurrentSubscription,
+    createSubscription,
+  } = useSubscriptions();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const plans = [
-    {
-      id: 'free',
-      name: t('subscription.plans.free.name'),
-      price: '$0',
+  useEffect(() => {
+    if (user?.id) {
+      fetchCurrentSubscription(user.id);
+    }
+  }, [user]);
+
+  if (subscriptionsLoading && availablePlans.length === 0) {
+    return (
+      <Screen safe className="bg-gray-50">
+        <Container className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </Container>
+      </Screen>
+    );
+  }
+
+  const plans = availablePlans.map((plan) => {
+    const features = plan.features as any;
+    const isCurrent = currentSubscription?.plan_id === plan.id;
+
+    return {
+      id: plan.id,
+      name: plan.name,
+      price: `$${plan.price_monthly}`,
       period: 'mes',
-      features: t('subscription.plans.free.features', { returnObjects: true }) as string[],
-      isCurrent: true,
-    },
-    {
-      id: 'starter',
-      name: t('subscription.plans.starter.name'),
-      price: '$9.99',
-      period: 'mes',
-      features: t('subscription.plans.starter.features', { returnObjects: true }) as string[],
-    },
-    {
-      id: 'premium',
-      name: t('subscription.plans.premium.name'),
-      price: '$19.99',
-      period: 'mes',
-      features: t('subscription.plans.premium.features', { returnObjects: true }) as string[],
-      isPopular: true,
-    },
-  ];
+      features: [
+        features.chat_enabled ? '✓ Chat habilitado' : '✗ Chat habilitado',
+        features.send_images ? '✓ Envío de imágenes' : '✗ Envío de imágenes',
+        features.send_location ? '✓ Envío de ubicación' : '✗ Envío de ubicación',
+        features.whatsapp_button ? '✓ Botón de WhatsApp' : '✗ Botón de WhatsApp',
+        `${features.weekly_contacts || 0} contactos por semana`,
+        features.featured_listing ? '✓ Destacado en listado' : '',
+        features.analytics ? '✓ Analíticas avanzadas' : '',
+        features.priority_support ? '✓ Soporte prioritario' : '',
+        features.badge ? `✓ Badge: ${features.badge}` : '',
+      ].filter(Boolean),
+      isCurrent,
+      isPopular: plan.slug === 'premium',
+    };
+  });
 
   const handleSubscribe = async (planId: string) => {
-    setLoading(true);
-    // TODO: Implement subscription logic
-    setTimeout(() => {
+    try {
+      setLoading(true);
+      
+      RNAlert.alert(
+        'Confirmar Suscripción',
+        '¿Deseas suscribirte a este plan?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Confirmar',
+            onPress: async () => {
+              try {
+                await createSubscription(planId);
+                RNAlert.alert('Éxito', 'Suscripción creada exitosamente');
+                navigation.goBack();
+              } catch (error: any) {
+                RNAlert.alert('Error', error.message || 'No se pudo crear la suscripción');
+              }
+            },
+          },
+        ]
+      );
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -55,7 +101,7 @@ export default function SubscriptionScreen({ navigation }: any) {
       <Container>
         <View className="flex-row items-center mb-6">
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text className="text-2xl">←</Text>
+            <ArrowLeft size={24} color="#374151" />
           </TouchableOpacity>
           <Text variant="h3" weight="bold" className="flex-1 ml-4">
             {t('subscription.title')}

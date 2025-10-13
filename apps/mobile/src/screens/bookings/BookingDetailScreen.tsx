@@ -1,7 +1,8 @@
 /** @jsxImportSource nativewind */
-import React from 'react';
-import { View, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft, CalendarDays, DollarSign } from 'lucide-react-native';
 import {
   Screen,
   Text,
@@ -15,19 +16,100 @@ import {
   LocationTag,
   PriceTag,
 } from '@conecteja/ui-mobile';
+import { useBookings } from '../../contexts/BookingsContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { formatCurrency } from '@conecteja/utils';
 
 export default function BookingDetailScreen({ navigation, route }: any) {
   const { t } = useTranslation();
-  const booking = {
-    id: '1',
-    professionalName: 'Juan Pérez',
-    serviceName: 'Reparación de tubería',
-    date: '15 Oct 2025',
-    time: '10:00 AM',
-    status: 'confirmed',
-    price: '$150',
-    address: 'Av. Libertador 1234, Buenos Aires',
-    notes: 'Tubería con pérdida en el baño principal',
+  const { id } = route.params || {};
+  const { currentMode } = useAuth();
+  const { currentBooking, loading, fetchBookingById, cancelBooking, confirmBooking, completeBooking } = useBookings();
+  const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      fetchBookingById(id);
+    }
+  }, [id]);
+
+  if (loading || !currentBooking) {
+    return (
+      <Screen safe className="bg-gray-50">
+        <Container className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </Container>
+      </Screen>
+    );
+  }
+
+  const booking = currentBooking;
+  
+  // Determine the other party based on current mode
+  const otherProfile = currentMode === 'client'
+    ? booking.professional_profile
+    : { profiles: booking.client_profile };
+  
+  const otherPartyName = currentMode === 'client'
+    ? booking.professional_profile?.profiles?.full_name || 'Profesional'
+    : booking.client_profile?.full_name || 'Cliente';
+
+  // Format date
+  const bookingDate = new Date(booking.booking_date);
+  const formattedDate = bookingDate.toLocaleDateString('es', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+  const handleCancel = () => {
+    Alert.alert(
+      t('bookings.detail.buttons.cancel'),
+      '¿Estás seguro que deseas cancelar esta reserva?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Sí, cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setActionLoading(true);
+              await cancelBooking(booking.id, 'Cancelado por usuario');
+              Alert.alert('Éxito', 'Reserva cancelada exitosamente');
+              navigation.goBack();
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo cancelar la reserva');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleConfirm = async () => {
+    try {
+      setActionLoading(true);
+      await confirmBooking(booking.id);
+      Alert.alert('Éxito', 'Reserva confirmada exitosamente');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo confirmar la reserva');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      setActionLoading(true);
+      await completeBooking(booking.id);
+      Alert.alert('Éxito', 'Reserva marcada como completada');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo completar la reserva');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -35,7 +117,7 @@ export default function BookingDetailScreen({ navigation, route }: any) {
       <Container>
         <View className="flex-row items-center mb-6">
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text className="text-2xl">←</Text>
+            <ArrowLeft size={24} color="#374151" />
           </TouchableOpacity>
           <Text variant="h3" weight="bold" className="flex-1 ml-4">
             {t('bookings.detail.title')}
@@ -49,7 +131,9 @@ export default function BookingDetailScreen({ navigation, route }: any) {
                 ? 'success'
                 : booking.status === 'pending'
                 ? 'warning'
-                : 'info'
+                : booking.status === 'completed'
+                ? 'info'
+                : 'danger'
             }
             className="self-start mb-4"
           >
@@ -57,17 +141,23 @@ export default function BookingDetailScreen({ navigation, route }: any) {
               ? t('bookings.detail.status.confirmed')
               : booking.status === 'pending'
               ? t('bookings.detail.status.pending')
-              : t('bookings.detail.status.completed')}
+              : booking.status === 'completed'
+              ? t('bookings.detail.status.completed')
+              : 'Cancelado'}
           </Badge>
 
           <View className="flex-row items-center mb-4">
-            <Avatar name={booking.professionalName} size="md" />
+            <Avatar 
+              name={otherPartyName} 
+              size="md"
+              uri={otherProfile?.profiles?.avatar_url}
+            />
             <View className="flex-1 ml-3">
               <Text variant="body" weight="bold">
-                {booking.professionalName}
+                {otherPartyName}
               </Text>
               <Text variant="caption" color="muted">
-                {t('bookings.detail.role')}
+                {currentMode === 'client' ? t('bookings.detail.role') : 'Cliente'}
               </Text>
             </View>
           </View>
@@ -76,25 +166,35 @@ export default function BookingDetailScreen({ navigation, route }: any) {
 
           <View className="py-4">
             <Text variant="h4" weight="bold" className="mb-3">
-              {booking.serviceName}
+              {booking.service_name}
             </Text>
 
+            {booking.service_description && (
+              <Text variant="body" color="secondary" className="mb-3">
+                {booking.service_description}
+              </Text>
+            )}
+
             <View className="flex-row items-center mb-2">
-              <Text className="text-xl mr-2">📅</Text>
+              <CalendarDays size={20} color="#6B7280" className="mr-2" />
               <Text variant="body" color="secondary">
-                {booking.date} • {booking.time}
+                {formattedDate} • {booking.start_time}
               </Text>
             </View>
 
-            <LocationTag location={booking.address} className="mb-2" />
+            {booking.location_address && (
+              <LocationTag location={booking.location_address} className="mb-2" />
+            )}
 
-            <View className="flex-row items-center">
-              <Text className="text-xl mr-2">💰</Text>
-              <PriceTag amount={booking.price} />
-            </View>
+            {booking.price && (
+              <View className="flex-row items-center">
+                <DollarSign size={20} color="#6B7280" className="mr-2" />
+                <PriceTag amount={formatCurrency(booking.price)} />
+              </View>
+            )}
           </View>
 
-          {booking.notes && (
+          {(booking.client_notes || booking.professional_notes) && (
             <>
               <Divider />
               <View className="pt-4">
@@ -102,13 +202,39 @@ export default function BookingDetailScreen({ navigation, route }: any) {
                   {t('bookings.detail.notes')}
                 </Text>
                 <Text variant="body" color="secondary">
-                  {booking.notes}
+                  {currentMode === 'client' ? booking.client_notes : booking.professional_notes}
                 </Text>
               </View>
             </>
           )}
         </Card>
 
+        {/* Actions for pending bookings (professional can confirm) */}
+        {booking.status === 'pending' && currentMode === 'professional' && (
+          <>
+            <Button
+              variant="primary"
+              fullWidth
+              className="mb-3"
+              onPress={handleConfirm}
+              loading={actionLoading}
+              disabled={actionLoading}
+            >
+              Confirmar Reserva
+            </Button>
+
+            <Button 
+              variant="ghost" 
+              fullWidth
+              onPress={handleCancel}
+              disabled={actionLoading}
+            >
+              {t('bookings.detail.buttons.cancel')}
+            </Button>
+          </>
+        )}
+
+        {/* Actions for confirmed bookings */}
         {booking.status === 'confirmed' && (
           <>
             <Button
@@ -117,25 +243,43 @@ export default function BookingDetailScreen({ navigation, route }: any) {
               className="mb-3"
               onPress={() => {
                 navigation.navigate('ChatDetail', {
-                  id: '1',
-                  name: booking.professionalName,
+                  conversationId: null,
+                  clientId: booking.client_profile_id,
+                  professionalId: booking.professional_profile_id,
+                  professionalName: otherPartyName,
+                  professionalAvatar: otherProfile?.profiles?.avatar_url,
                 });
               }}
             >
               {t('bookings.detail.buttons.contact')}
             </Button>
 
-            <Button variant="outline" fullWidth className="mb-3">
-              {t('bookings.detail.buttons.reschedule')}
-            </Button>
+            {currentMode === 'professional' && (
+              <Button 
+                variant="outline" 
+                fullWidth 
+                className="mb-3"
+                onPress={handleComplete}
+                loading={actionLoading}
+                disabled={actionLoading}
+              >
+                Marcar como Completada
+              </Button>
+            )}
 
-            <Button variant="ghost" fullWidth>
+            <Button 
+              variant="ghost" 
+              fullWidth
+              onPress={handleCancel}
+              disabled={actionLoading}
+            >
               {t('bookings.detail.buttons.cancel')}
             </Button>
           </>
         )}
 
-        {booking.status === 'completed' && (
+        {/* Actions for completed bookings */}
+        {booking.status === 'completed' && currentMode === 'client' && (
           <Button variant="primary" fullWidth>
             {t('bookings.detail.buttons.review')}
           </Button>

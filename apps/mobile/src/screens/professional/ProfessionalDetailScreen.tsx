@@ -1,7 +1,8 @@
 /** @jsxImportSource nativewind */
 import React, { useState } from 'react';
-import { View, TouchableOpacity, ScrollView } from 'react-native';
+import { View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft } from 'lucide-react-native';
 import {
   Screen,
   Text,
@@ -19,122 +20,114 @@ import {
   ReviewCard,
   ImageGallery,
 } from '@conecteja/ui-mobile';
-
-const services = [
-  {
-    id: '1',
-    name: 'Reparación básica',
-    description: 'Reparación de fugas y grifos',
-    price: '$50',
-    duration: '1 hora',
-  },
-  {
-    id: '2',
-    name: 'Instalación completa',
-    description: 'Instalación de sanitarios y cañerías',
-    price: '$150',
-    duration: '3-4 horas',
-  },
-];
-
-const reviews = [
-  {
-    id: '1',
-    userName: 'Ana Martínez',
-    rating: 5,
-    comment: 'Excelente servicio, muy profesional y puntual. Totalmente recomendado!',
-    date: 'Hace 1 semana',
-    response: {
-      text: 'Muchas gracias por tu comentario Ana! Fue un placer trabajar contigo.',
-      date: 'Hace 6 días',
-    },
-  },
-  {
-    id: '2',
-    userName: 'Pedro González',
-    rating: 4,
-    comment: 'Buen trabajo, llegó a tiempo y resolvió el problema rápidamente.',
-    date: 'Hace 2 semanas',
-  },
-];
-
-const galleryImages = [
-  { id: '1', uri: 'https://via.placeholder.com/400' },
-  { id: '2', uri: 'https://via.placeholder.com/400' },
-  { id: '3', uri: 'https://via.placeholder.com/400' },
-];
+import { formatCurrency } from '@conecteja/utils';
+import { useAuth } from '../../contexts/AuthContext';
+import { useProfessionalDetails } from '../../hooks';
 
 export default function ProfessionalDetailScreen({ navigation, route }: any) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('services');
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const { id } = route.params;
+  const { user } = useAuth();
+  const [creatingChat, setCreatingChat] = useState(false);
 
+  // Custom hook that handles all the data fetching logic
+  const {
+    professional,
+    reviews,
+    galleryImages,
+    services,
+    loading,
+    loadingReviews,
+    loadingGallery,
+    activeTab,
+    setActiveTab,
+    selectedService,
+    setSelectedService,
+  } = useProfessionalDetails(id);
+
+  // Loading state
+  if (loading || !professional) {
+    return (
+      <Screen className="bg-white">
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3b82f6" />
+        </View>
+      </Screen>
+    );
+  }
+
+  // Tabs configuration
   const tabs = [
     { id: 'services', label: t('professional.tabs.services') },
-    { id: 'reviews', label: t('professional.tabs.reviews'), badge: 156 },
+    { id: 'reviews', label: t('professional.tabs.reviews'), badge: professional.total_reviews || 0 },
     { id: 'about', label: t('professional.tabs.about') },
   ];
 
-  const professional = {
-    name: 'Juan Pérez',
-    category: 'Plomero',
-    rating: 4.8,
-    reviewCount: 156,
-    distance: 1.2,
-    isPremium: true,
-    isVerified: true,
-    yearsExperience: 15,
-    completedJobs: 450,
-    responseTime: '30 min',
-    location: 'Buenos Aires, Argentina',
-    bio: 'Plomero profesional con 15 años de experiencia en instalaciones y reparaciones residenciales y comerciales. Certificado en sistemas de cañerías y sanitarios.',
+  const handleStartChat = () => {
+    if (!user?.id || !professional?.profile_id) return;
+
+    // Navigate directly to chat without creating conversation
+    // Conversation will be created when first message is sent
+    navigation.navigate('ChatDetail', { 
+      clientId: user.id,
+      professionalId: professional.profile_id,
+      professionalName: professional.profiles?.full_name,
+      professionalAvatar: professional.profiles?.avatar_url,
+    });
   };
 
   return (
     <Screen className="bg-white">
       <ScrollView>
         <View className="px-4 pt-4">
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text className="text-2xl">←</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} className="p-2">
+            <ArrowLeft size={24} color="#000000" />
           </TouchableOpacity>
         </View>
 
         <Container>
           <View className="items-center py-6">
-            <Avatar name={professional.name} size="xl" />
+            <Avatar 
+              source={professional.profiles?.avatar_url ? { uri: professional.profiles.avatar_url } : undefined}
+              name={professional.profiles?.full_name || t('professional.defaults.name')} 
+              size="xl" 
+            />
             <Spacer size="md" />
 
             <View className="flex-row items-center">
               <Text variant="h3" weight="bold" className="mr-2">
-                {professional.name}
+                {professional.profiles?.full_name || t('professional.defaults.name')}
               </Text>
-              <VerificationBadge isVerified={professional.isVerified} />
+              <VerificationBadge isVerified={professional.is_verified} />
             </View>
 
             <Text variant="body" color="muted" className="mb-2">
-              {professional.category}
+              {professional.categories?.name || t('professional.defaults.category')}
             </Text>
 
-            {professional.isPremium && (
+            {professional.subscription_plan?.slug === 'premium' && (
               <Badge variant="warning" className="mb-3">
                 {t('professional.premium')}
               </Badge>
             )}
 
             <View className="flex-row items-center mb-3">
-              <Rating value={professional.rating} readonly size="md" showValue />
+              <Rating value={Number(professional.average_rating) || 0} readonly size="md" showValue />
               <Text variant="caption" color="muted" className="ml-2">
-                ({t('professional.reviews', { count: professional.reviewCount })})
+                ({t('professional.reviews', { count: professional.total_reviews || 0 })})
               </Text>
             </View>
 
-            <LocationTag location={professional.location} distance={professional.distance} />
+            <LocationTag 
+              location={`${professional.profiles?.city || ''}, ${professional.profiles?.state || ''}`}
+              distance={0} 
+            />
           </View>
 
           <View className="flex-row gap-2 mb-6">
             <View className="flex-1 bg-gray-50 rounded-xl p-4 items-center">
               <Text variant="h4" weight="bold" className="mb-1">
-                {professional.yearsExperience}
+                {professional.years_experience || 0}
               </Text>
               <Text variant="caption" color="muted" align="center">
                 {t('professional.stats.experience')}
@@ -142,7 +135,7 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
             </View>
             <View className="flex-1 bg-gray-50 rounded-xl p-4 items-center">
               <Text variant="h4" weight="bold" className="mb-1">
-                {professional.completedJobs}
+                {professional.completed_bookings || 0}
               </Text>
               <Text variant="caption" color="muted" align="center">
                 {t('professional.stats.completed')}
@@ -150,7 +143,7 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
             </View>
             <View className="flex-1 bg-gray-50 rounded-xl p-4 items-center">
               <Text variant="h4" weight="bold" className="mb-1">
-                {professional.responseTime}
+                30 min
               </Text>
               <Text variant="caption" color="muted" align="center">
                 {t('professional.stats.responseTime')}
@@ -162,22 +155,54 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
 
           {activeTab === 'services' && (
             <View>
-              {services.map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  {...service}
-                  isSelected={selectedService === service.id}
-                  onPress={() => setSelectedService(service.id)}
-                />
-              ))}
+              {services.length > 0 ? (
+                services.map((service: any, index: number) => (
+                  <ServiceCard
+                    key={index}
+                    id={String(index)}
+                    name={service.name || t('professional.defaults.service')}
+                    description={service.description || ''}
+                    price={service.price ? formatCurrency(service.price) : ''}
+                    duration={service.duration_minutes ? `${service.duration_minutes} min` : ''}
+                    isSelected={selectedService === String(index)}
+                    onPress={() => setSelectedService(String(index))}
+                  />
+                ))
+              ) : (
+                <Text variant="body" color="muted" className="text-center py-8">
+                  {t('professional.empty.services')}
+                </Text>
+              )}
             </View>
           )}
 
           {activeTab === 'reviews' && (
             <View>
-              {reviews.map((review) => (
-                <ReviewCard key={review.id} {...review} />
-              ))}
+              {loadingReviews ? (
+                <View className="py-8 items-center">
+                  <ActivityIndicator size="large" color="#3b82f6" />
+                </View>
+              ) : reviews.length > 0 ? (
+                reviews.map((review) => (
+                  <ReviewCard 
+                    key={review.id}
+                    id={review.id}
+                    userName={review.client_profile?.full_name || 'Usuario'}
+                    userAvatar={review.client_profile?.avatar_url || undefined}
+                    rating={review.rating}
+                    comment={review.comment || ''}
+                    date={review.created_at ? new Date(review.created_at).toLocaleDateString() : ''}
+                    response={review.response && review.response_at ? {
+                      text: review.response,
+                      date: new Date(review.response_at as string).toLocaleDateString()
+                    } : undefined}
+                  />
+                ))
+              ) : (
+                <Text variant="body" color="muted" className="text-center py-8">
+                  {t('professional.empty.reviews')}
+                </Text>
+              )}
             </View>
           )}
 
@@ -187,13 +212,26 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
                 {t('professional.aboutMe')}
               </Text>
               <Text variant="body" color="secondary" className="mb-6">
-                {professional.bio}
+                {professional.description || professional.profiles?.bio || t('professional.empty.description')}
               </Text>
 
-              <Text variant="body" weight="medium" className="mb-3">
-                {t('professional.gallery')}
-              </Text>
-              <ImageGallery images={galleryImages} />
+              {loadingGallery ? (
+                <View className="py-8 items-center">
+                  <ActivityIndicator size="large" color="#3b82f6" />
+                </View>
+              ) : galleryImages.length > 0 ? (
+                <>
+                  <Text variant="body" weight="medium" className="mb-3">
+                    {t('professional.gallery')}
+                  </Text>
+                  <ImageGallery images={galleryImages.map((item: any) => ({
+                    id: item.id,
+                    uri: item.image_url,
+                    title: item.title,
+                    description: item.description,
+                  }))} />
+                </>
+              ) : null}
             </View>
           )}
         </Container>
@@ -203,7 +241,9 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
         <View className="flex-row gap-2">
           <Button
             variant="outline"
-            onPress={() => navigation.navigate('ChatDetail', { id: '1' })}
+            onPress={handleStartChat}
+            loading={creatingChat}
+            disabled={creatingChat}
             className="flex-1"
           >
             {t('professional.buttons.chat')}

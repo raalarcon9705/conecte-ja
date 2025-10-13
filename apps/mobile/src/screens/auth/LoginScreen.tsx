@@ -8,13 +8,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { createClient } from '@conecteja/supabase';
 import { LoginSchema, loginSchema } from '@conecteja/schemas';
 import { useAuth } from '../../contexts/AuthContext';
+import { Mail, Lock } from 'lucide-react-native';
 
 export default function LoginScreen({ navigation }: any) {
   const { t } = useTranslation();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
-
+  
   const {
     control,
     handleSubmit,
@@ -62,7 +63,7 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <Screen safe scrollable className="bg-white">
+    <Screen safe scrollable className="bg-white" contentContainerClassName="flex-1">
       <View className="flex-1 justify-center px-6">
         <View className="items-center mb-12">
           <Text variant="h1" weight="bold" className="text-blue-600 mb-2">
@@ -92,6 +93,7 @@ export default function LoginScreen({ navigation }: any) {
                 onBlur={onBlur}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                leftIcon={<Mail size={20} color="#6b7280" />}
               />
               {errors.email && (
                 <Text className="text-red-600 text-xs mt-1">
@@ -114,6 +116,7 @@ export default function LoginScreen({ navigation }: any) {
                 onChangeText={onChange}
                 onBlur={onBlur}
                 secureTextEntry
+                leftIcon={<Lock size={20} color="#6b7280" />}
               />
               {errors.password && (
                 <Text className="text-red-600 text-xs mt-1">
@@ -123,6 +126,16 @@ export default function LoginScreen({ navigation }: any) {
             </View>
           )}
         />
+
+        <View className="flex-row justify-end mb-4">
+          <Text
+            color="primary"
+            weight="semibold"
+            onPress={() => navigation.navigate('AccountRecovery')}
+          >
+            {t('auth.login.forgotPassword')}
+          </Text>
+        </View>
 
         <Button
           variant="primary"
@@ -134,6 +147,8 @@ export default function LoginScreen({ navigation }: any) {
           {t('auth.login.loginButton')}
         </Button>
 
+        {/* Temporalmente ocultos: Google y Apple auth */}
+        {/*
         <Spacer size="md" />
 
         <View className="flex-row items-center">
@@ -144,13 +159,23 @@ export default function LoginScreen({ navigation }: any) {
 
         <Spacer size="md" />
 
-        <Button variant="outline" fullWidth className="mb-3">
+        <Button
+          variant="outline"
+          fullWidth
+          className="mb-3"
+          leftIcon={<Google color="#2563eb" />}
+        >
           {t('auth.login.continueGoogle')}
         </Button>
 
-        <Button variant="outline" fullWidth>
+        <Button
+          variant="outline"
+          fullWidth
+          leftIcon={<Apple size={20} color="#2563eb" />}
+        >
           {t('auth.login.continueApple')}
         </Button>
+        */}
 
         <Spacer size="lg" />
 

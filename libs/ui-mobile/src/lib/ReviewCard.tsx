@@ -1,6 +1,7 @@
 /** @jsxImportSource nativewind */
 import React from 'react';
 import { View, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from './Avatar';
 import { Rating } from './Rating';
 
@@ -25,6 +26,8 @@ export function ReviewCard({
   date,
   response,
 }: ReviewCardProps) {
+  const { t } = useTranslation();
+  
   return (
     <View className="bg-white rounded-xl p-4 mb-3 border border-gray-100">
       <View className="flex-row items-start mb-3">
@@ -47,7 +50,7 @@ export function ReviewCard({
       {response && (
         <View className="mt-3 ml-4 pl-4 border-l-2 border-gray-200">
           <Text className="text-xs font-semibold text-blue-600 mb-1">
-            Respuesta del profesional
+            {t('professional.reviewResponse')}
           </Text>
           <Text className="text-sm text-gray-700">{response.text}</Text>
           <Text className="text-xs text-gray-500 mt-1">{response.date}</Text>

@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 
 export interface StatCardProps {
-  icon: string;
+  icon: string | React.ReactNode;
   label: string;
   value: string | number;
   trend?: {

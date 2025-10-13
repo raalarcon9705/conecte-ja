@@ -1,11 +1,11 @@
 /** @jsxImportSource nativewind */
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { TouchableOpacity, Text, View } from 'react-native';
 
 export interface CategoryCardProps {
   id: string;
   name: string;
-  icon: string;
+  icon: ReactNode;
   count?: number;
   onPress?: () => void;
   isActive?: boolean;
@@ -25,7 +25,13 @@ export function CategoryCard({
       }`}
       onPress={onPress}
     >
-      <Text className="text-3xl mb-2">{icon}</Text>
+      <View className="mb-2">
+        {typeof icon === 'string' ? (
+          <Text className="text-3xl">{icon}</Text>
+        ) : (
+          icon
+        )}
+      </View>
       <Text
         className={`text-sm font-medium text-center ${
           isActive ? 'text-white' : 'text-gray-900'

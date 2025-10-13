@@ -511,3 +511,135 @@ conecteja/                                 # Monorepo Nx
 - Rating > 4.5 estrellas
 
 ---
+
+## 📍 Sistema de Geolocalización y Privacidad
+
+### Estrategia de Ubicación Aproximada
+
+Para proteger la privacidad de los clientes, implementaremos un sistema de ubicación aproximada hasta que se concrete el servicio:
+
+#### **Antes de cerrar el servicio:**
+- Mostrar solo ubicación aproximada en el mapa
+- Redondear coordenadas a 2-3 decimales (precisión ~100-1000m)
+- Mostrar área circular o polígono del barrio
+- Solo indicar zona/barrio sin dirección exacta
+
+#### **Después de cerrar/confirmar el servicio:**
+- Revelar dirección completa
+- Mostrar botones para abrir en apps de navegación:
+  - **Apps de transporte:** Uber, 99Taxi
+  - **Apps de mapas:** Waze, Google Maps, Apple Maps
+  - **Fallback web:** Para usuarios sin apps instaladas
+
+### Deep Links para Navegación
+
+```typescript
+// Estructura de deep links por plataforma
+const navigationApps = {
+  // Apps de transporte
+  uber: `uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}`,
+  '99taxi': `99taxi://routeRequest?destiny=${lat},${lng}`,
+
+  // Apps de mapas
+  waze: `waze://?ll=${lat},${lng}&navigate=yes`,
+  googleMaps: Platform.OS === 'ios'
+    ? `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`
+    : `google.navigation:q=${lat},${lng}`,
+  appleMaps: `maps://?daddr=${lat},${lng}`,
+
+  // Fallbacks web (si no tienen la app instalada)
+  googleMapsWeb: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+  wazeWeb: `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`
+};
+```
+
+### Mapas Recomendados (Sin Costo)
+
+#### **1. OpenStreetMap + React Native Maps (RECOMENDADO)**
+- ✅ **Completamente gratuito**
+- ✅ Sin límites de requests
+- ✅ Datos abiertos
+- ✅ Buen soporte en LATAM
+- ⚠️ Requiere servidor de tiles propio o usar tiles gratuitos
+- **Tiles gratuitos:** `https://tile.openstreetmap.org/{z}/{x}/{y}.png`
+- **Librería:** `react-native-maps` (soporta OSM)
+
+#### **2. Mapbox (Plan Gratuito)**
+- ✅ 50,000 map loads/mes gratis
+- ✅ 100,000 geocoding requests/mes
+- ✅ Excelente rendimiento
+- ✅ Mapas offline
+- ⚠️ Requiere registro con tarjeta (pero no cobra sin autorización)
+- **Ideal para:** MVP y escalar gradualmente
+
+#### **3. Google Maps Platform (Créditos Gratuitos)**
+- ✅ $200 USD/mes en créditos gratis
+- ✅ ~28,000 map loads/mes
+- ✅ Mejor cobertura en Brasil
+- ⚠️ Requiere tarjeta de crédito
+- **Ideal para:** Producción con tráfico moderado
+
+#### **4. Nominatim (Geocoding Gratuito)**
+- ✅ Completamente gratis
+- ✅ Basado en OpenStreetMap
+- ✅ Sin límite de requests totales
+- ⚠️ Límite: 1 request/segundo
+- **Usar para:** Convertir direcciones a coordenadas
+
+### Implementación Recomendada
+
+```typescript
+// Fase 1: MVP (Sin costo)
+- Mapas: OpenStreetMap + react-native-maps
+- Geocoding: Nominatim (1 req/seg)
+- Tiles: OSM tiles públicos
+
+// Fase 2: Crecimiento
+- Mapas: Mapbox (50k loads/mes gratis)
+- Geocoding: Mapbox (100k/mes gratis)
+- Fallback: Nominatim
+
+// Fase 3: Producción
+- Mapas: Google Maps ($200/mes gratis)
+- Geocoding: Google Geocoding
+- Backup: Mapbox
+```
+
+### Algoritmo de Privacidad
+
+```typescript
+// Función para aproximar ubicación
+function approximateLocation(lat: number, lng: number, precision: number = 2): {
+  approximate: { lat: number; lng: number };
+  radius: number;
+} {
+  return {
+    approximate: {
+      lat: parseFloat(lat.toFixed(precision)),
+      lng: parseFloat(lng.toFixed(precision))
+    },
+    radius: precision === 2 ? 1000 : 100 // metros
+  };
+}
+
+// Estados de visibilidad de ubicación
+enum LocationPrivacy {
+  HIDDEN = 'hidden',           // No mostrar ubicación
+  APPROXIMATE = 'approximate', // Mostrar área aproximada (default)
+  EXACT = 'exact'             // Mostrar dirección exacta (post-booking)
+}
+```
+
+### Costos Estimados (Escenario Real)
+
+Asumiendo **10,000 usuarios activos/mes**:
+
+| Servicio | Loads/Usuario | Total Loads | Costo Mensual |
+|----------|---------------|-------------|---------------|
+| **OSM** | Ilimitado | Ilimitado | **$0** |
+| **Mapbox** | 5 loads | 50,000 | **$0** (dentro del plan) |
+| **Google Maps** | 5 loads | 50,000 | **$0** (dentro de créditos) |
+
+**Conclusión:** Con hasta 10k usuarios, no pagarías nada en mapas. 🎉
+
+---

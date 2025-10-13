@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@conecteja/types';
+import { ExpoSecureStoreAdapter } from './storage';
 
 /**
  * Creates a Supabase client with the anonymous key for client-side operations
@@ -18,7 +19,14 @@ export function createClient(): SupabaseClient<Database> {
     throw new Error('SUPABASE_ANON_KEY environment variable is not set');
   }
 
-  return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+  return createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      storage: ExpoSecureStoreAdapter,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  });
 }
 
 /**

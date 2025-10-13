@@ -123,27 +123,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "analytics_events_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_booking_analytics"
-            referencedColumns: ["professional_profile_id"]
-          },
-          {
-            foreignKeyName: "analytics_events_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professional_search"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "analytics_events_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professionals_with_location"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "analytics_events_source_profile_id_fkey"
             columns: ["source_profile_id"]
             isOneToOne: false
@@ -198,27 +177,6 @@ export type Database = {
             columns: ["professional_profile_id"]
             isOneToOne: false
             referencedRelation: "professional_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "availability_slots_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_booking_analytics"
-            referencedColumns: ["professional_profile_id"]
-          },
-          {
-            foreignKeyName: "availability_slots_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professional_search"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "availability_slots_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professionals_with_location"
             referencedColumns: ["id"]
           },
         ]
@@ -330,27 +288,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bookings_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_booking_analytics"
-            referencedColumns: ["professional_profile_id"]
-          },
-          {
-            foreignKeyName: "bookings_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professional_search"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professionals_with_location"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "bookings_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
@@ -455,27 +392,6 @@ export type Database = {
             referencedRelation: "professional_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "contact_logs_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_booking_analytics"
-            referencedColumns: ["professional_profile_id"]
-          },
-          {
-            foreignKeyName: "contact_logs_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professional_search"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_logs_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professionals_with_location"
-            referencedColumns: ["id"]
-          },
         ]
       }
       conversations: {
@@ -566,25 +482,224 @@ export type Database = {
             referencedRelation: "professional_profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      job_applications: {
+        Row: {
+          accepted_at: string | null
+          availability_notes: string | null
+          cover_letter: string | null
+          created_at: string | null
+          estimated_duration_minutes: number | null
+          id: string
+          job_posting_id: string
+          professional_profile_id: string
+          proposed_price: number | null
+          rejected_at: string | null
+          status: string | null
+          updated_at: string | null
+          viewed_by_client_at: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          availability_notes?: string | null
+          cover_letter?: string | null
+          created_at?: string | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          job_posting_id: string
+          professional_profile_id: string
+          proposed_price?: number | null
+          rejected_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          viewed_by_client_at?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          availability_notes?: string | null
+          cover_letter?: string | null
+          created_at?: string | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          job_posting_id?: string
+          professional_profile_id?: string
+          proposed_price?: number | null
+          rejected_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          viewed_by_client_at?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "favorites_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
+            foreignKeyName: "job_applications_job_posting_id_fkey"
+            columns: ["job_posting_id"]
             isOneToOne: false
-            referencedRelation: "v_booking_analytics"
-            referencedColumns: ["professional_profile_id"]
-          },
-          {
-            foreignKeyName: "favorites_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professional_search"
+            referencedRelation: "job_postings"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "favorites_professional_profile_id_fkey"
+            foreignKeyName: "job_applications_professional_profile_id_fkey"
             columns: ["professional_profile_id"]
             isOneToOne: false
-            referencedRelation: "v_professionals_with_location"
+            referencedRelation: "professional_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_posting_reactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          job_posting_id: string
+          professional_profile_id: string
+          reaction_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          job_posting_id: string
+          professional_profile_id: string
+          reaction_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          job_posting_id?: string
+          professional_profile_id?: string
+          reaction_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_posting_reactions_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_posting_reactions_professional_profile_id_fkey"
+            columns: ["professional_profile_id"]
+            isOneToOne: false
+            referencedRelation: "professional_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_postings: {
+        Row: {
+          applications_count: number | null
+          budget_max: number | null
+          budget_min: number | null
+          budget_type: string | null
+          category_id: string | null
+          client_profile_id: string
+          created_at: string | null
+          description: string
+          dislikes_count: number | null
+          end_date: string | null
+          expires_at: string | null
+          id: string
+          is_recurring: boolean | null
+          likes_count: number | null
+          location_address: string | null
+          location_city: string | null
+          location_latitude: number | null
+          location_longitude: number | null
+          location_state: string | null
+          schedule: Json | null
+          selected_at: string | null
+          selected_professional_id: string | null
+          start_date: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          views_count: number | null
+        }
+        Insert: {
+          applications_count?: number | null
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_type?: string | null
+          category_id?: string | null
+          client_profile_id: string
+          created_at?: string | null
+          description: string
+          dislikes_count?: number | null
+          end_date?: string | null
+          expires_at?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          likes_count?: number | null
+          location_address?: string | null
+          location_city?: string | null
+          location_latitude?: number | null
+          location_longitude?: number | null
+          location_state?: string | null
+          schedule?: Json | null
+          selected_at?: string | null
+          selected_professional_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Update: {
+          applications_count?: number | null
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_type?: string | null
+          category_id?: string | null
+          client_profile_id?: string
+          created_at?: string | null
+          description?: string
+          dislikes_count?: number | null
+          end_date?: string | null
+          expires_at?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          likes_count?: number | null
+          location_address?: string | null
+          location_city?: string | null
+          location_latitude?: number | null
+          location_longitude?: number | null
+          location_state?: string | null
+          schedule?: Json | null
+          selected_at?: string | null
+          selected_professional_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_postings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_client_profile_id_fkey"
+            columns: ["client_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_selected_professional_id_fkey"
+            columns: ["selected_professional_id"]
+            isOneToOne: false
+            referencedRelation: "professional_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -810,27 +925,6 @@ export type Database = {
             referencedRelation: "professional_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "portfolio_items_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_booking_analytics"
-            referencedColumns: ["professional_profile_id"]
-          },
-          {
-            foreignKeyName: "portfolio_items_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professional_search"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "portfolio_items_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professionals_with_location"
-            referencedColumns: ["id"]
-          },
         ]
       }
       professional_certifications: {
@@ -876,27 +970,6 @@ export type Database = {
             columns: ["professional_profile_id"]
             isOneToOne: false
             referencedRelation: "professional_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "professional_certifications_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_booking_analytics"
-            referencedColumns: ["professional_profile_id"]
-          },
-          {
-            foreignKeyName: "professional_certifications_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professional_search"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "professional_certifications_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professionals_with_location"
             referencedColumns: ["id"]
           },
         ]
@@ -1026,6 +1099,7 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string | null
+          default_mode: string
           email_notifications: boolean | null
           full_name: string
           id: string
@@ -1050,6 +1124,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          default_mode: string
           email_notifications?: boolean | null
           full_name: string
           id: string
@@ -1074,6 +1149,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          default_mode?: string
           email_notifications?: boolean | null
           full_name?: string
           id?: string
@@ -1231,27 +1307,6 @@ export type Database = {
             referencedRelation: "professional_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "reviews_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_booking_analytics"
-            referencedColumns: ["professional_profile_id"]
-          },
-          {
-            foreignKeyName: "reviews_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professional_search"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_professional_profile_id_fkey"
-            columns: ["professional_profile_id"]
-            isOneToOne: false
-            referencedRelation: "v_professionals_with_location"
-            referencedColumns: ["id"]
-          },
         ]
       }
       search_logs: {
@@ -1304,27 +1359,6 @@ export type Database = {
             columns: ["clicked_professional_id"]
             isOneToOne: false
             referencedRelation: "professional_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "search_logs_clicked_professional_id_fkey"
-            columns: ["clicked_professional_id"]
-            isOneToOne: false
-            referencedRelation: "v_booking_analytics"
-            referencedColumns: ["professional_profile_id"]
-          },
-          {
-            foreignKeyName: "search_logs_clicked_professional_id_fkey"
-            columns: ["clicked_professional_id"]
-            isOneToOne: false
-            referencedRelation: "v_professional_search"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "search_logs_clicked_professional_id_fkey"
-            columns: ["clicked_professional_id"]
-            isOneToOne: false
-            referencedRelation: "v_professionals_with_location"
             referencedColumns: ["id"]
           },
           {
@@ -1529,126 +1563,6 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
-      }
-      v_booking_analytics: {
-        Row: {
-          avg_booking_value: number | null
-          canceled_bookings: number | null
-          completed_bookings: number | null
-          confirmed_bookings: number | null
-          current_month_revenue: number | null
-          no_show_bookings: number | null
-          pending_bookings: number | null
-          professional_profile_id: string | null
-          profile_id: string | null
-          total_revenue: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "professional_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_professional_search: {
-        Row: {
-          acceptance_rate: number | null
-          avatar_url: string | null
-          average_rating: number | null
-          business_name: string | null
-          category_icon: string | null
-          category_name: string | null
-          category_slug: string | null
-          city: string | null
-          description: string | null
-          full_name: string | null
-          id: string | null
-          is_verified: boolean | null
-          latitude: number | null
-          location: unknown | null
-          longitude: number | null
-          plan_features: Json | null
-          plan_slug: string | null
-          price_range: string | null
-          profile_id: string | null
-          response_time_avg: number | null
-          search_keywords: string[] | null
-          service_radius_km: number | null
-          state: string | null
-          tagline: string | null
-          total_reviews: number | null
-          verified_certifications_count: number | null
-          years_experience: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "professional_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_professionals_with_location: {
-        Row: {
-          accepts_bookings: boolean | null
-          avatar_url: string | null
-          average_rating: number | null
-          business_name: string | null
-          category_id: string | null
-          category_name: string | null
-          category_slug: string | null
-          city: string | null
-          completed_bookings: number | null
-          created_at: string | null
-          description: string | null
-          full_name: string | null
-          id: string | null
-          instant_booking: boolean | null
-          is_verified: boolean | null
-          latitude: number | null
-          longitude: number | null
-          plan_name: string | null
-          plan_slug: string | null
-          price_range: string | null
-          profile_id: string | null
-          profile_views: number | null
-          service_radius_km: number | null
-          services: Json | null
-          state: string | null
-          subscription_status: string | null
-          tagline: string | null
-          total_bookings: number | null
-          total_reviews: number | null
-          updated_at: string | null
-          verification_documents: Json | null
-          verification_status: string | null
-          verified_at: string | null
-          weekly_contacts_reset_at: string | null
-          weekly_contacts_used: number | null
-          working_hours: Json | null
-          years_experience: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "professional_profiles_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "professional_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Functions: {
@@ -2116,9 +2030,45 @@ export type Database = {
           slot_start: string
         }[]
       }
+      get_professional_details: {
+        Args: { prof_profile_id: string }
+        Returns: {
+          acceptance_rate: number
+          avatar_url: string
+          average_rating: number
+          business_name: string
+          category_icon: string
+          category_name: string
+          category_slug: string
+          city: string
+          completed_bookings: number
+          description: string
+          full_name: string
+          is_verified: boolean
+          plan_slug: string
+          price_range: string
+          professional_profile_id: string
+          profile_id: string
+          response_time_avg: number
+          services: Json
+          state: string
+          tagline: string
+          total_reviews: number
+          verified_certifications_count: number
+          working_hours: Json
+          years_experience: number
+        }[]
+      }
       get_proj4_from_srid: {
         Args: { "": number }
         Returns: string
+      }
+      get_user_roles: {
+        Args: { user_id: string }
+        Returns: {
+          is_client: boolean
+          is_professional: boolean
+        }[]
       }
       gettransactionid: {
         Args: Record<PropertyKey, never>
@@ -2151,6 +2101,10 @@ export type Database = {
       gtrgm_out: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      has_professional_account: {
+        Args: { user_id: string }
+        Returns: boolean
       }
       json: {
         Args: { "": unknown }
@@ -2357,6 +2311,38 @@ export type Database = {
       reset_weekly_contacts: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      search_professionals: {
+        Args: {
+          category_id_filter?: string
+          limit_results?: number
+          max_distance_km?: number
+          min_rating?: number
+          offset_results?: number
+          search_query?: string
+          user_latitude?: number
+          user_longitude?: number
+        }
+        Returns: {
+          avatar_url: string
+          average_rating: number
+          business_name: string
+          category_name: string
+          category_slug: string
+          city: string
+          description: string
+          distance_km: number
+          full_name: string
+          is_verified: boolean
+          plan_slug: string
+          price_range: string
+          professional_profile_id: string
+          profile_id: string
+          state: string
+          tagline: string
+          total_reviews: number
+          years_experience: number
+        }[]
       }
       set_limit: {
         Args: { "": number }

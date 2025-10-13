@@ -1,6 +1,7 @@
 /** @jsxImportSource nativewind */
 import React from 'react';
 import { View, Text, Image } from 'react-native';
+import { Check, CheckCheck, Clock, AlertCircle } from 'lucide-react-native';
 
 export interface ChatBubbleProps {
   message: string;
@@ -45,9 +46,17 @@ export function ChatBubble({
             {timestamp}
           </Text>
           {isOwn && (
-            <Text className="text-xs text-blue-100 ml-1">
-              {status === 'sending' ? '🕐' : status === 'error' ? '⚠️' : isRead ? '✓✓' : '✓'}
-            </Text>
+            <View className="ml-1">
+              {status === 'sending' ? (
+                <Clock size={12} color="#DBEAFE" />
+              ) : status === 'error' ? (
+                <AlertCircle size={12} color="#DBEAFE" />
+              ) : isRead ? (
+                <CheckCheck size={12} color="#DBEAFE" />
+              ) : (
+                <Check size={12} color="#DBEAFE" />
+              )}
+            </View>
           )}
         </View>
       </View>

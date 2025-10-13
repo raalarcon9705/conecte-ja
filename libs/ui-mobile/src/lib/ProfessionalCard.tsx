@@ -1,6 +1,7 @@
 /** @jsxImportSource nativewind */
 import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { Check, Heart, MapPin } from 'lucide-react-native';
 import { Avatar } from './Avatar';
 import { Rating } from './Rating';
 import { Badge } from './Badge';
@@ -50,7 +51,7 @@ export function ProfessionalCard({
           badge={
             isVerified ? (
               <View className="w-6 h-6 bg-blue-500 rounded-full items-center justify-center border-2 border-white">
-                <Text className="text-white text-xs">✓</Text>
+                <Check size={12} color="#ffffff" strokeWidth={3} />
               </View>
             ) : undefined
           }
@@ -60,8 +61,13 @@ export function ProfessionalCard({
             <Text className="text-lg font-bold text-gray-900 flex-1" numberOfLines={1}>
               {name}
             </Text>
-            <TouchableOpacity onPress={onFavorite}>
-              <Text className="text-2xl">{isFavorite ? '❤️' : '🤍'}</Text>
+            <TouchableOpacity onPress={onFavorite} className="p-1">
+              <Heart 
+                size={24} 
+                color={isFavorite ? '#ef4444' : '#9ca3af'} 
+                fill={isFavorite ? '#ef4444' : 'none'}
+                strokeWidth={2}
+              />
             </TouchableOpacity>
           </View>
           
@@ -85,7 +91,10 @@ export function ProfessionalCard({
 
           <View className="flex-row items-center justify-between">
             {distance !== undefined && (
-              <Text className="text-sm text-gray-500">📍 {distance.toFixed(1)} km</Text>
+              <View className="flex-row items-center">
+                <MapPin size={14} color="#6b7280" />
+                <Text className="text-sm text-gray-500 ml-1">{distance.toFixed(1)} km</Text>
+              </View>
             )}
             {price && (
               <Text className="text-base font-bold text-blue-600">{price}</Text>

@@ -4,6 +4,7 @@ import { View, Image, Text, ViewProps } from 'react-native';
 
 export interface AvatarProps extends ViewProps {
   source?: { uri: string } | number;
+  uri?: string | null;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   name?: string;
   badge?: React.ReactNode;
@@ -11,12 +12,15 @@ export interface AvatarProps extends ViewProps {
 
 export function Avatar({
   source,
+  uri,
   size = 'md',
   name,
   badge,
   className = '',
   ...props
 }: AvatarProps) {
+  // Prefer uri over source if both are provided
+  const imageSource = uri ? { uri } : source;
   const sizeStyles = {
     xs: 'w-8 h-8',
     sm: 'w-10 h-10',
@@ -44,8 +48,8 @@ export function Avatar({
   return (
     <View className="relative" {...props}>
       <View className={`${sizeStyles[size]} rounded-full overflow-hidden bg-blue-500 items-center justify-center ${className}`}>
-        {source ? (
-          <Image source={source} className="w-full h-full" resizeMode="cover" />
+        {imageSource ? (
+          <Image source={imageSource} className="w-full h-full" resizeMode="cover" />
         ) : name ? (
           <Text className={`${textSizeStyles[size]} font-bold text-white`}>
             {getInitials(name)}

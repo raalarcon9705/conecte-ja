@@ -1,8 +1,8 @@
 /** @jsxImportSource nativewind */
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, ScrollView, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { MessageCircle, ArrowLeft } from 'lucide-react-native';
+import { MessageCircle } from 'lucide-react-native';
 import {
   Screen,
   Text,
@@ -16,7 +16,11 @@ import {
 import { useChats } from '../../contexts/ChatsContext';
 import { useAuth } from '../../contexts/AuthContext';
 
-export default function ChatsScreen({ navigation }: any) {
+interface ChatsScreenProps {
+  navigation: any;
+}
+
+export default function ChatsScreen({ navigation }: ChatsScreenProps) {
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
   const { conversations, loading, fetchConversations } = useChats();
@@ -25,34 +29,65 @@ export default function ChatsScreen({ navigation }: any) {
 
   useEffect(() => {
     if (user?.id) {
+      console.log('Fetching conversations for user:', user.id);
       fetchConversations(user.id);
     }
-  }, [user?.id, currentMode]); // Refetch when mode changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // Removed currentMode - show all conversations
+
+  // Debug: log conversations
+  useEffect(() => {
+    console.log('Conversations state:', {
+      total: conversations.length,
+      currentMode,
+      userId: user?.id,
+      conversations: conversations.map(c => ({
+        id: c.id,
+        client_id: c.client_profile_id,
+        prof_id: c.professional_profile_id,
+        client_name: c.client_profile?.full_name,
+        prof_name: c.professional_profile?.full_name,
+      }))
+    });
+  }, [conversations, currentMode, user?.id]);
 
   const filteredConversations = conversations
     .filter((conv) => {
-      // Filter conversations based on current mode
-      // In client mode: show conversations where user is the client
-      // In professional mode: show conversations where user is the professional
-      const isClientConversation = user?.id === conv.client_profile_id;
+      // Check if user is part of this conversation
+      const isParticipant = 
+        user?.id === conv.client_profile_id || 
+        user?.id === conv.professional_profile_id;
       
-      if (currentMode === 'client' && !isClientConversation) {
-        return false; // Hide professional conversations when in client mode
+      if (!isParticipant) {
+        console.log('Conversation filtered out - not a participant:', conv.id);
+        return false;
       }
-      if (currentMode === 'professional' && isClientConversation) {
-        return false; // Hide client conversations when in professional mode
-      }
+
+      // Determine if this is a client or professional conversation for the user
+      const isClientConversation = user?.id === conv.client_profile_id;
       
       // Get the other user's profile
       const otherProfile = isClientConversation
         ? conv.professional_profile
         : conv.client_profile;
       
-      return otherProfile?.full_name
-        ?.toLowerCase()
-        .includes(searchQuery.toLowerCase());
+      // Check if profiles are loaded
+      if (!otherProfile) {
+        console.log('Conversation filtered out - missing profile:', conv.id);
+        return false;
+      }
+      
+      // Search filter
+      if (searchQuery && otherProfile?.full_name) {
+        return otherProfile.full_name
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
+      }
+      
+      return true;
     })
     .filter((conv) => {
+      // Unread filter
       if (activeTab === 'unread') {
         const isClientConversation = user?.id === conv.client_profile_id;
         const unreadCount = isClientConversation
@@ -71,7 +106,7 @@ export default function ChatsScreen({ navigation }: any) {
   }, 0);
 
   const tabs = [
-    { id: 'all', label: t('chats.tabs.all'), badge: conversations.length },
+    { id: 'all', label: t('chats.tabs.all'), badge: filteredConversations.length },
     { id: 'unread', label: t('chats.tabs.unread'), badge: totalUnread },
   ];
 
@@ -111,10 +146,23 @@ export default function ChatsScreen({ navigation }: any) {
       {filteredConversations.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
           <Empty
-            icon={<MessageCircle size={64} color="#9CA3AF" />}
+            icon={<MessageCircle size={80} color="#3B82F6" />}
             title={t('chats.empty.title')}
             description={t('chats.empty.description')}
             action={{
+              label: currentMode === 'client' 
+                ? t('chats.empty.actionClient', 'Buscar Profesionales')
+                : t('chats.empty.actionProfessional', 'Ver Trabajos Disponibles'),
+              onPress: () => {
+                if (currentMode === 'client') {
+                  navigation.navigate('Search');
+                } else {
+                  navigation.navigate('JobsList');
+                }
+              },
+              variant: 'primary',
+            }}
+            secondary={{
               label: t('navigation.home'),
               onPress: () => navigation.navigate('Home'),
             }}

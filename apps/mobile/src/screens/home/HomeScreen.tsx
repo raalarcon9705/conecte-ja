@@ -1,6 +1,6 @@
 /** @jsxImportSource nativewind */
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Wrench, Zap, Hammer, Sparkles, Paintbrush, Home, Scissors, Car, Construction, Package, ChevronRight, Briefcase } from 'lucide-react-native';
 import {
@@ -13,6 +13,7 @@ import {
   Spacer,
   Card,
   Divider,
+  JobPostingCard,
 } from '@conecteja/ui-mobile';
 import { useCategories } from '../../contexts/CategoriesContext';
 import { useProfessionals } from '../../contexts/ProfessionalsContext';
@@ -21,6 +22,7 @@ import { useFavorites } from '../../contexts/FavoritesContext';
 import { useNotifications } from '../../contexts/NotificationsContext';
 import { useProfile } from '../../contexts/ProfileContext';
 import { useBookings } from '../../contexts/BookingsContext';
+import { useJobPostings } from '../../contexts/JobPostingsContext';
 
 // Icon mapping by category slug
 const getCategoryIconBySlug = (slug: string, size: number, color: string) => {
@@ -48,27 +50,102 @@ const getCategoryIconBySlug = (slug: string, size: number, color: string) => {
   return iconMap[slug] || <Package size={size} color={color} />;
 };
 
-export default function HomeScreen({ navigation }: any) {
+interface HomeScreenProps {
+  navigation: {
+    navigate: (screen: string, params?: any) => void;
+    goBack: () => void;
+  };
+}
+
+export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
-  const { categories, loading: categoriesLoading } = useCategories();
-  const { professionals, loading: professionalsLoading, fetchProfessionalsByCategory } = useProfessionals();
-  const { favorites, fetchFavorites, toggleFavorite } = useFavorites();
+  
+  // Common contexts for both modes
   const { unreadCount, fetchNotifications } = useNotifications();
   const { profile, fetchProfile } = useProfile();
   const { bookings, fetchBookings } = useBookings();
+  
+  // Client mode only - Categories and Professionals search
+  const { categories, loading: categoriesLoading } = useCategories();
+  const { professionals, loading: professionalsLoading, fetchProfessionalsByCategory } = useProfessionals();
+  const { favorites, fetchFavorites, toggleFavorite } = useFavorites();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Initialize contexts on mount
+  console.log("HomeScreen initialized");
+  
+  // Professional mode only - Job postings
+  const { 
+    featuredJobs, 
+    loading: jobsLoading, 
+    fetchFeaturedJobs,
+    reactToJob 
+  } = useJobPostings();
+
+  // Initialize common contexts on mount
   useEffect(() => {
     if (user?.id) {
       fetchProfile(user.id);
-      fetchFavorites(user.id);
       fetchNotifications(user.id);
       fetchBookings(user.id, currentMode);
     }
-  }, [user, currentMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, currentMode]);
+
+  // Initialize client-specific data (favorites)
+  useEffect(() => {
+    if (user?.id && currentMode === 'client') {
+      fetchFavorites(user.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, currentMode]);
+
+  // Fetch featured jobs for professionals only
+  useEffect(() => {
+    if (user?.id && currentMode === 'professional' && profile?.professional_profile?.category_id) {
+      console.log('Fetching featured jobs for category:', profile.professional_profile.category_id);
+      fetchFeaturedJobs(profile.professional_profile.category_id, 3);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, currentMode, profile?.professional_profile?.category_id]);
+
+  // Fetch professionals by category (client mode only)
+  useEffect(() => {
+    if (selectedCategory && currentMode === 'client') {
+      fetchProfessionalsByCategory(selectedCategory);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, currentMode]);
+
+  // Clear search state when switching to professional mode
+  useEffect(() => {
+    if (currentMode === 'professional') {
+      setSearchQuery('');
+      setSelectedCategory(null);
+    }
+  }, [currentMode]);
+
+  const handleJobLike = async (jobId: string) => {
+    try {
+      await reactToJob(jobId, 'like');
+    } catch {
+      Alert.alert(
+        t('common.error'),
+        t('home.professional.errors.reactionFailed')
+      );
+    }
+  };
+
+  const getCategoryIcon = (slug: string, categoryColor: string | null, isActive: boolean) => {
+    const iconColor = isActive ? '#ffffff' : (categoryColor || '#3b82f6');
+    const iconSize = 24;
+    return getCategoryIconBySlug(slug, iconSize, iconColor);
+  };
+
+  const handleCategoryPress = (categoryId: string) => {
+    setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
+  };
 
   const userName = profile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || 'Usuario';
 
@@ -76,7 +153,8 @@ export default function HomeScreen({ navigation }: any) {
   if (currentMode === 'professional') {
     return (
       <Screen safe className="bg-gray-50">
-        <Container>
+        <ScrollView>
+          <Container>
           <Text variant="h2" weight="bold" className="mb-2">
             {t('home.professional.greeting', { name: userName })}
           </Text>
@@ -107,6 +185,65 @@ export default function HomeScreen({ navigation }: any) {
                 </Text>
               </Card>
             </View>
+          </View>
+
+          {/* Featured Jobs Section */}
+          <View className="mb-6">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text variant="h4" weight="bold">
+                {t('home.professional.availableJobs')}
+              </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('JobsList')}>
+                <Text color="primary" weight="medium">
+                  {t('home.viewAll')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {jobsLoading ? (
+              <View className="py-8 items-center">
+                <ActivityIndicator size="large" color="#3b82f6" />
+              </View>
+            ) : featuredJobs.length === 0 ? (
+              <Card variant="outlined" className="p-6">
+                <View className="items-center">
+                  <Briefcase size={48} color="#9ca3af" />
+                  <Spacer size="md" />
+                  <Text variant="body" color="muted" align="center" className="mb-2">
+                    {t('home.professional.noJobs')}
+                  </Text>
+                  <Text variant="caption" color="muted" align="center">
+                    {t('home.professional.checkBack')}
+                  </Text>
+                </View>
+              </Card>
+            ) : (
+              featuredJobs.map((job) => (
+                <JobPostingCard
+                  key={job.id}
+                  id={job.id}
+                  title={job.title}
+                  description={job.description}
+                  clientName={job.profiles?.full_name || 'Usuario'}
+                  clientAvatar={job.profiles?.avatar_url || undefined}
+                  category={job.categories?.name || 'General'}
+                  location={job.location_city || undefined}
+                  budgetMin={job.budget_min || undefined}
+                  budgetMax={job.budget_max || undefined}
+                  budgetType={(job.budget_type as 'fixed' | 'hourly' | 'daily' | 'negotiable') || undefined}
+                  startDate={job.start_date || undefined}
+                  isRecurring={job.is_recurring || undefined}
+                  likesCount={job.likes_count || 0}
+                  dislikesCount={job.dislikes_count || 0}
+                  applicationsCount={job.applications_count || 0}
+                  createdAt={job.created_at || new Date().toISOString()}
+                  onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
+                  onLike={() => handleJobLike(job.id)}
+                  onApply={() => navigation.navigate('JobApply', { jobId: job.id })}
+                  showActions={true}
+                />
+              ))
+            )}
           </View>
 
           {/* Quick Actions */}
@@ -172,26 +309,12 @@ export default function HomeScreen({ navigation }: any) {
             </Card>
           </View>
         </Container>
+        </ScrollView>
       </Screen>
     );
   }
 
-  useEffect(() => {
-    if (selectedCategory) {
-      fetchProfessionalsByCategory(selectedCategory);
-    }
-  }, [selectedCategory]);
-
-  const getCategoryIcon = (slug: string, categoryColor: string | null, isActive: boolean) => {
-    const iconColor = isActive ? '#ffffff' : (categoryColor || '#3b82f6');
-    const iconSize = 24;
-    return getCategoryIconBySlug(slug, iconSize, iconColor);
-  };
-
-  const handleCategoryPress = (categoryId: string) => {
-    setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
-  };
-
+  // Client mode view
   return (
     <Screen safe className="bg-gray-50">
       <ScrollView>
@@ -229,7 +352,7 @@ export default function HomeScreen({ navigation }: any) {
             onChangeText={setSearchQuery}
             placeholder={t('home.searchPlaceholder')}
             showFilter
-            onFilterPress={() => {}}
+            onFilterPress={() => navigation.navigate('Search')}
           />
 
           <Spacer size="lg" />

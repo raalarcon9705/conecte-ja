@@ -27,6 +27,7 @@ export default function JobsListScreen({ navigation }: any) {
 
   useEffect(() => {
     fetchJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory]);
 
   const fetchJobs = async () => {
@@ -89,8 +90,8 @@ export default function JobsListScreen({ navigation }: any) {
           <View className="flex-1">
             <Text variant="h3" weight="bold">
               {currentMode === 'client'
-                ? t('jobs.myJobs.title', 'Mis Trabajos')
-                : t('jobs.available.title', 'Trabajos Disponibles')}
+                ? t('jobs.list.myJobs.title')
+                : t('jobs.list.available.title')}
             </Text>
           </View>
 
@@ -106,14 +107,14 @@ export default function JobsListScreen({ navigation }: any) {
 
         <Text variant="body" color="muted" className="mb-4">
           {currentMode === 'client'
-            ? t('jobs.myJobs.subtitle', 'Gestiona tus publicaciones')
-            : t('jobs.available.subtitle', 'Encuentra tu próximo trabajo')}
+            ? t('jobs.list.myJobs.subtitle')
+            : t('jobs.list.available.subtitle')}
         </Text>
 
         <SearchBar
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder={t('jobs.searchPlaceholder', 'Buscar trabajos...')}
+          placeholder={t('jobs.list.searchPlaceholder')}
           showFilter
           onFilterPress={() => {}}
         />
@@ -127,23 +128,23 @@ export default function JobsListScreen({ navigation }: any) {
           className="mb-4"
         >
           <FilterChip
-            label={t('jobs.filters.all', 'Todos')}
-            active={!selectedCategory}
+            label={t('jobs.list.filters.all')}
+            isActive={!selectedCategory}
             onPress={() => setSelectedCategory(null)}
           />
           <FilterChip
-            label={t('jobs.filters.cleaning', 'Limpieza')}
-            active={false}
+            label={t('jobs.list.filters.cleaning')}
+            isActive={false}
             onPress={() => {}}
           />
           <FilterChip
-            label={t('jobs.filters.nanny', 'Niñera')}
-            active={false}
+            label={t('jobs.list.filters.nanny')}
+            isActive={false}
             onPress={() => {}}
           />
           <FilterChip
-            label={t('jobs.filters.helper', 'Auxiliar')}
-            active={false}
+            label={t('jobs.list.filters.helper')}
+            isActive={false}
             onPress={() => {}}
           />
         </ScrollView>
@@ -159,8 +160,8 @@ export default function JobsListScreen({ navigation }: any) {
             <Briefcase size={48} color="#d1d5db" />
             <Text variant="body" color="muted" className="text-center mt-4">
               {currentMode === 'client'
-                ? t('jobs.myJobs.empty', 'No tienes trabajos publicados')
-                : t('jobs.available.empty', 'No hay trabajos disponibles')}
+                ? t('jobs.list.myJobs.empty')
+                : t('jobs.list.available.empty')}
             </Text>
             {currentMode === 'client' && (
               <Button
@@ -169,7 +170,7 @@ export default function JobsListScreen({ navigation }: any) {
                 className="mt-4"
                 onPress={() => navigation.navigate('CreateJob')}
               >
-                {t('jobs.createFirst', 'Publicar primer trabajo')}
+                {t('jobs.list.createFirst')}
               </Button>
             )}
           </View>

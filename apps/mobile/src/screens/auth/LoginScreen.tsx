@@ -1,7 +1,7 @@
 /** @jsxImportSource nativewind */
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Screen, Text, Input, Button, Spacer, Divider, Alert } from '@conecteja/ui-mobile';
+import { Screen, Text, Input, Button, Spacer, Alert } from '@conecteja/ui-mobile';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

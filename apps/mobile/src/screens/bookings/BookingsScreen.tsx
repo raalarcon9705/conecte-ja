@@ -26,7 +26,8 @@ export default function BookingsScreen({ navigation }: any) {
     if (user?.id) {
       fetchBookings(user.id, currentMode);
     }
-  }, [user, currentMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, currentMode]);
 
   const tabs = [
     { id: 'upcoming', label: t('bookings.tabs.upcoming') },
@@ -55,9 +56,21 @@ export default function BookingsScreen({ navigation }: any) {
   return (
     <Screen safe className="bg-gray-50">
       <Container>
-        <Text variant="h2" weight="bold" className="mb-6">
+        <Text variant="h2" weight="bold" className="mb-2">
           {t('bookings.title')}
         </Text>
+        
+        {currentMode === 'professional' && (
+          <Text variant="caption" color="muted" className="mb-4">
+            Gestiona las reservas de tus clientes
+          </Text>
+        )}
+        
+        {currentMode === 'client' && (
+          <Text variant="caption" color="muted" className="mb-4">
+            Revisa tus reservas con profesionales
+          </Text>
+        )}
 
         <Tabs
           tabs={tabs}
@@ -74,24 +87,35 @@ export default function BookingsScreen({ navigation }: any) {
             title={t('bookings.empty.title')}
             description={
               activeTab === 'upcoming'
-                ? t('bookings.empty.descriptionUpcoming')
+                ? currentMode === 'client'
+                  ? t('bookings.empty.descriptionUpcoming')
+                  : 'No tienes reservas pendientes. Aplica a trabajos para recibir reservas de clientes.'
                 : t('bookings.empty.descriptionOther')
             }
             action={
               activeTab === 'upcoming'
-                ? {
-                    label: t('bookings.empty.action'),
-                    onPress: () => navigation.navigate('Search'),
-                  }
+                ? currentMode === 'client'
+                  ? {
+                      label: t('bookings.empty.action'),
+                      onPress: () => navigation.navigate('Search'),
+                    }
+                  : {
+                      label: 'Buscar trabajos',
+                      onPress: () => navigation.navigate('Search'),
+                    }
                 : undefined
             }
           />
         ) : (
           filteredBookings.map((booking) => {
-            // Determine the name based on current mode
+            // Determine the name and context based on current mode
             const otherPartyName = currentMode === 'client'
               ? booking.professional_profile?.profiles?.full_name || 'Profesional'
               : booking.client_profile?.full_name || 'Cliente';
+
+            const serviceName = currentMode === 'client'
+              ? booking.service_name
+              : `${booking.service_name} - ${booking.client_profile?.full_name || 'Cliente'}`;
 
             // Format date and time
             const bookingDate = new Date(booking.booking_date);
@@ -106,7 +130,7 @@ export default function BookingsScreen({ navigation }: any) {
                 key={booking.id}
                 id={booking.id}
                 professionalName={otherPartyName}
-                serviceName={booking.service_name}
+                serviceName={serviceName}
                 date={formattedDate}
                 time={booking.start_time}
                 status={booking.status as 'pending' | 'confirmed' | 'completed'}

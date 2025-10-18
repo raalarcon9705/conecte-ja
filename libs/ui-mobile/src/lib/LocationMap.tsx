@@ -4,10 +4,10 @@
  * Usa WebView con Leaflet para máxima compatibilidad con Expo
  */
 
+import { LocationPrivacy } from '@conecteja/utils';
 import React from 'react';
 import { View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { LocationPrivacy } from '../../../../apps/mobile/src/utils/geolocation';
 
 interface LocationMapProps {
   latitude: number;

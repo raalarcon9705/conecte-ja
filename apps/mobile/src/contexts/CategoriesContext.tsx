@@ -1,6 +1,6 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
-import type { Database } from '@conecteja/shared/types';
+import type { Database } from '@conecteja/types';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 
@@ -19,31 +19,40 @@ export const CategoriesProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const supabase = useSupabase();
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      
+      const query = supabase
         .from('categories')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
+      
+      const result = await query;
+      
+      const { data, error: fetchError } = result;
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('[CategoriesContext] Supabase error:', fetchError);
+        throw fetchError;
+      }
 
       setCategories(data || []);
     } catch (err: any) {
-      console.error('Error fetching categories:', err);
+      console.error('[CategoriesContext] Error fetching categories:', err);
       setError(err.message || 'Error al cargar categorías');
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
+  // Fetch categories only once on mount
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
   return (
     <CategoriesContext.Provider

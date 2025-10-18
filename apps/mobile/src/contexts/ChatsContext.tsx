@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import type { Database } from '@conecteja/types';
 
@@ -39,7 +39,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingConversationData, setPendingConversationData] = useState<{
+  const [, setPendingConversationData] = useState<{
     clientId: string;
     professionalId: string;
     professionalName?: string;
@@ -47,7 +47,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
   } | null>(null);
   const supabase = useSupabase();
 
-  const fetchConversations = async (profileId: string) => {
+  const fetchConversations = useCallback(async (profileId: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -72,7 +72,10 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         .or(`client_profile_id.eq.${profileId},professional_profile_id.eq.${profileId}`)
         .order('last_message_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Error fetching conversations:', fetchError);
+        throw fetchError;
+      }
 
       setConversations(data as unknown as ConversationWithProfiles[] || []);
     } catch (err: any) {
@@ -81,9 +84,9 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const fetchConversationById = async (conversationId: string) => {
+  const fetchConversationById = useCallback(async (conversationId: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -108,7 +111,10 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', conversationId)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Error fetching conversation:', fetchError);
+        throw fetchError;
+      }
 
       setCurrentConversation(data as unknown as ConversationWithProfiles);
     } catch (err: any) {
@@ -117,9 +123,9 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const fetchMessages = async (conversationId: string) => {
+  const fetchMessages = useCallback(async (conversationId: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -127,7 +133,21 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       const { data, error: fetchError } = await supabase
         .from('messages')
         .select(`
-          *,
+          id,
+          conversation_id,
+          sender_profile_id,
+          message_type,
+          content,
+          attachment_url,
+          attachment_type,
+          latitude,
+          longitude,
+          is_read,
+          read_at,
+          created_at,
+          is_flagged,
+          flagged_reason,
+          moderated_at,
           sender:sender_profile_id (
             id,
             full_name,
@@ -146,12 +166,54 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const sendMessage = async (
+  const createOrGetConversation = useCallback(async (
+    clientId: string,
+    professionalId: string
+  ): Promise<string | null> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Check if conversation already exists
+      const { data: existingConversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('client_profile_id', clientId)
+        .eq('professional_profile_id', professionalId)
+        .maybeSingle();
+
+      if (existingConversation) {
+        return existingConversation.id;
+      }
+
+      // Create new conversation
+      const { data: newConversation, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          client_profile_id: clientId,
+          professional_profile_id: professionalId,
+        })
+        .select('id')
+        .single();
+
+      if (createError) throw createError;
+
+      return newConversation.id;
+    } catch (err: any) {
+      console.error('Error creating conversation:', err);
+      setError(err.message || 'Error al crear conversación');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  const sendMessage = useCallback(async (
     conversationId: string | null,
     content: string,
-    messageType: string = 'text',
+    messageType = 'text',
     pendingConversation?: { clientId: string; professionalId: string }
   ): Promise<string | null> => {
     try {
@@ -190,7 +252,21 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           message_type: messageType,
         })
         .select(`
-          *,
+          id,
+          conversation_id,
+          sender_profile_id,
+          message_type,
+          content,
+          attachment_url,
+          attachment_type,
+          latitude,
+          longitude,
+          is_read,
+          read_at,
+          created_at,
+          is_flagged,
+          flagged_reason,
+          moderated_at,
           sender:sender_profile_id (
             id,
             full_name,
@@ -216,15 +292,20 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       // Clear pending conversation data
       setPendingConversationData(null);
 
+      // Refresh conversations list to include the new conversation
+      if (user) {
+        await fetchConversations(user.id);
+      }
+
       return actualConversationId;
     } catch (err: any) {
       console.error('Error sending message:', err);
       setError(err.message || 'Error al enviar mensaje');
       throw err;
     }
-  };
+  }, [supabase, createOrGetConversation, fetchConversationById, fetchConversations]);
 
-  const markMessageAsRead = async (messageId: string) => {
+  const markMessageAsRead = useCallback(async (messageId: string) => {
     try {
       const { error: updateError } = await supabase
         .from('messages')
@@ -247,51 +328,9 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       console.error('Error marking message as read:', err);
     }
-  };
+  }, [supabase]);
 
-  const createOrGetConversation = async (
-    clientId: string,
-    professionalId: string
-  ): Promise<string | null> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Check if conversation already exists
-      const { data: existingConversation, error: checkError } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('client_profile_id', clientId)
-        .eq('professional_profile_id', professionalId)
-        .single();
-
-      if (existingConversation) {
-        return existingConversation.id;
-      }
-
-      // Create new conversation
-      const { data: newConversation, error: createError } = await supabase
-        .from('conversations')
-        .insert({
-          client_profile_id: clientId,
-          professional_profile_id: professionalId,
-        })
-        .select('id')
-        .single();
-
-      if (createError) throw createError;
-
-      return newConversation.id;
-    } catch (err: any) {
-      console.error('Error creating conversation:', err);
-      setError(err.message || 'Error al crear conversación');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const setPendingConversation = (
+  const setPendingConversation = useCallback((
     clientId: string,
     professionalId: string,
     professionalName?: string,
@@ -326,7 +365,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     } as ConversationWithProfiles);
     
     setMessages([]);
-  };
+  }, []);
 
   // Subscribe to new messages in current conversation
   useEffect(() => {
@@ -347,7 +386,21 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           const { data } = await supabase
             .from('messages')
             .select(`
-              *,
+              id,
+              conversation_id,
+              sender_profile_id,
+              message_type,
+              content,
+              attachment_url,
+              attachment_type,
+              latitude,
+              longitude,
+              is_read,
+              read_at,
+              created_at,
+              is_flagged,
+              flagged_reason,
+              moderated_at,
               sender:sender_profile_id (
                 id,
                 full_name,

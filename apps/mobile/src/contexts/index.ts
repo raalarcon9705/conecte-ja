@@ -24,3 +24,6 @@ export type { SubscriptionWithPlan, SubscriptionStatus } from './SubscriptionsCo
 export { ProfileProvider, useProfile } from './ProfileContext';
 export type { ProfileWithProfessional } from './ProfileContext';
 
+export { JobPostingsProvider, useJobPostings } from './JobPostingsContext';
+export type { JobPostingWithDetails, JobReaction } from './JobPostingsContext';
+

@@ -10,6 +10,11 @@ export interface EmptyProps extends ViewProps {
   action?: {
     label: string;
     onPress: () => void;
+    variant?: 'primary' | 'secondary' | 'outline';
+  };
+  secondary?: {
+    label: string;
+    onPress: () => void;
   };
 }
 
@@ -18,24 +23,53 @@ export function Empty({
   title,
   description,
   action,
+  secondary,
   className = '',
   ...props
 }: EmptyProps) {
   return (
     <View className={`flex-1 items-center justify-center p-8 ${className}`} {...props}>
-      {icon && <View className="mb-4">{icon}</View>}
-      <Text className="text-xl font-bold text-gray-900 text-center mb-2">
+      {/* Icon Container with Background */}
+      {icon && (
+        <View className="mb-6 items-center justify-center w-32 h-32 rounded-full bg-gray-100">
+          {icon}
+        </View>
+      )}
+      
+      {/* Title */}
+      <Text className="text-2xl font-bold text-gray-900 text-center mb-3 px-4">
         {title}
       </Text>
+      
+      {/* Description */}
       {description && (
-        <Text className="text-base text-gray-600 text-center mb-6">
+        <Text className="text-base text-gray-500 text-center mb-8 px-6 leading-6">
           {description}
         </Text>
       )}
+      
+      {/* Actions */}
       {action && (
-        <Button onPress={action.onPress}>
-          {action.label}
-        </Button>
+        <View className="w-full px-8">
+          <Button 
+            variant={action.variant || 'primary'} 
+            size="lg"
+            onPress={action.onPress}
+            className="mb-3"
+          >
+            {action.label}
+          </Button>
+          
+          {secondary && (
+            <Button 
+              variant="outline" 
+              size="lg"
+              onPress={secondary.onPress}
+            >
+              {secondary.label}
+            </Button>
+          )}
+        </View>
       )}
     </View>
   );

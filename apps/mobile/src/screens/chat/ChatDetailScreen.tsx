@@ -9,13 +9,16 @@ import {
   Avatar,
   ChatBubble,
   Input,
-  Button,
-  Container,
 } from '@conecteja/ui-mobile';
 import { useChats } from '../../contexts/ChatsContext';
 import { useAuth } from '../../contexts/AuthContext';
 
-export default function ChatDetailScreen({ navigation, route }: any) {
+interface ChatDetailScreenProps {
+  navigation: any;
+  route: any;
+}
+
+export default function ChatDetailScreen({ navigation, route }: ChatDetailScreenProps) {
   const { t } = useTranslation();
   const { 
     conversationId, 
@@ -25,7 +28,7 @@ export default function ChatDetailScreen({ navigation, route }: any) {
     professionalAvatar 
   } = route?.params || {};
   
-  const { user, currentMode } = useAuth();
+  const { user } = useAuth();
   const {
     currentConversation,
     messages,
@@ -37,12 +40,6 @@ export default function ChatDetailScreen({ navigation, route }: any) {
   } = useChats();
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
-
-  // Validate that the conversation matches the current mode
-  const isClientConversation = user?.id === currentConversation?.client_profile_id;
-  const isValidConversation = currentMode === 'client' 
-    ? isClientConversation 
-    : !isClientConversation;
 
   // Check if this is a pending conversation (no conversationId yet)
   const isPendingConversation = !conversationId && clientId && professionalId;
@@ -56,7 +53,8 @@ export default function ChatDetailScreen({ navigation, route }: any) {
       // Pending conversation - set it up for display
       setPendingConversation(clientId, professionalId, professionalName, professionalAvatar);
     }
-  }, [conversationId, isPendingConversation, clientId, professionalId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, isPendingConversation, clientId, professionalId, professionalName, professionalAvatar]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim()) return;
@@ -65,6 +63,8 @@ export default function ChatDetailScreen({ navigation, route }: any) {
       setSending(true);
       
       if (isPendingConversation) {
+        console.log('Creating new conversation:', { clientId, professionalId });
+        
         // Create conversation with first message
         const newConversationId = await sendMessage(
           null, 
@@ -72,6 +72,8 @@ export default function ChatDetailScreen({ navigation, route }: any) {
           'text',
           { clientId, professionalId }
         );
+        
+        console.log('Conversation created:', newConversationId);
         
         // Update route params with the new conversationId to avoid recreating
         if (newConversationId) {
@@ -82,15 +84,21 @@ export default function ChatDetailScreen({ navigation, route }: any) {
             professionalName: undefined,
             professionalAvatar: undefined,
           });
+          
+          // Fetch the conversation and messages to ensure they're loaded
+          await fetchConversationById(newConversationId);
+          await fetchMessages(newConversationId);
         }
       } else if (conversationId) {
         // Existing conversation
+        console.log('Sending message to existing conversation:', conversationId);
         await sendMessage(conversationId, messageText.trim());
       }
       
       setMessageText('');
     } catch (error) {
       console.error('Error sending message:', error);
+      // You could show an error toast here
     } finally {
       setSending(false);
     }
@@ -104,7 +112,7 @@ export default function ChatDetailScreen({ navigation, route }: any) {
     );
   }
 
-  if (!currentConversation || (!isValidConversation && !isPendingConversation)) {
+  if (!currentConversation && !isPendingConversation) {
     return (
       <Screen className="bg-gray-50" contentContainerClassName="flex-1 items-center justify-center">
         <Text variant="body" color="muted">
@@ -115,9 +123,9 @@ export default function ChatDetailScreen({ navigation, route }: any) {
   }
 
   // Determine the other user in the conversation
-  const otherProfile = user?.id === currentConversation.client_profile_id
-    ? currentConversation.professional_profile
-    : currentConversation.client_profile;
+  const otherProfile = user?.id === currentConversation?.client_profile_id
+    ? currentConversation?.professional_profile
+    : currentConversation?.client_profile;
 
   const isOnline = otherProfile?.last_seen_at
     ? new Date().getTime() - new Date(otherProfile.last_seen_at).getTime() < 5 * 60 * 1000 // 5 minutes

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import type { Database } from '@conecteja/types';
 
@@ -36,7 +36,7 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
   const [error, setError] = useState<string | null>(null);
   const supabase = useSupabase();
 
-  const fetchProfessionals = async () => {
+  const fetchProfessionals = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -63,21 +63,22 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
         .eq('is_verified', true)
         .limit(20);
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        throw fetchError;
+      }
 
       setProfessionals(data as unknown as Professional[] || []);
     } catch (err: any) {
-      console.error('Error fetching professionals:', err);
       setError(err.message || 'Error al cargar profesionales');
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const fetchNearbyProfessionals = async (
+  const fetchNearbyProfessionals = useCallback(async (
     latitude: number,
     longitude: number,
-    radiusKm: number = 10
+    radiusKm = 10
   ) => {
     try {
       setLoading(true);
@@ -133,14 +134,13 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
 
       setProfessionals(filtered as unknown as Professional[]);
     } catch (err: any) {
-      console.error('Error fetching nearby professionals:', err);
       setError(err.message || 'Error al cargar profesionales cercanos');
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const fetchProfessionalsByCategory = async (categoryId: string) => {
+  const fetchProfessionalsByCategory = useCallback(async (categoryId: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -177,9 +177,9 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const fetchProfessionalById = async (professionalId: string): Promise<Professional | null> => {
+  const fetchProfessionalById = useCallback(async (professionalId: string): Promise<Professional | null> => {
     try {
       setLoading(true);
       setError(null);
@@ -219,11 +219,12 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
+  // Fetch professionals only once on mount
   useEffect(() => {
     fetchProfessionals();
-  }, []);
+  }, [fetchProfessionals]);
 
   return (
     <ProfessionalsContext.Provider

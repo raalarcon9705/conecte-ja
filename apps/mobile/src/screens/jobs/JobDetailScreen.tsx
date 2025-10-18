@@ -27,13 +27,15 @@ import {
   NavigationButtons,
 } from '@conecteja/ui-mobile';
 import { useAuth } from '../../contexts/AuthContext';
+import { useChats } from '../../contexts/ChatsContext';
 import { useSupabase } from '../../hooks/useSupabase';
-import { LocationPrivacy } from '../../utils/geolocation';
+import { LocationPrivacy, formatCurrency, formatPriceRange } from '@conecteja/utils';
 
 export default function JobDetailScreen({ route, navigation }: any) {
   const { jobId } = route.params;
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
+  const { createOrGetConversation } = useChats();
   const supabase = useSupabase();
 
   const [job, setJob] = useState<any>(null);
@@ -78,7 +80,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
       setJob(data);
     } catch (error) {
       console.error('Error fetching job:', error);
-      Alert.alert('Error', 'No se pudo cargar el trabajo');
+      Alert.alert(t('common.error'), t('jobs.detail.errors.loadFailed'));
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -90,8 +92,8 @@ export default function JobDetailScreen({ route, navigation }: any) {
       const { data: professionalProfile } = await supabase
         .from('professional_profiles')
         .select('id')
-        .eq('profile_id', user?.id)
-        .single();
+        .eq('profile_id', user?.id || '')
+        .maybeSingle();
 
       if (!professionalProfile) return;
 
@@ -100,10 +102,10 @@ export default function JobDetailScreen({ route, navigation }: any) {
         .select('reaction_type')
         .eq('job_posting_id', jobId)
         .eq('professional_profile_id', professionalProfile.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
-        setUserReaction(data.reaction_type);
+        setUserReaction(data.reaction_type as 'like' | 'dislike');
       }
     } catch (error) {
       console.error('Error checking reaction:', error);
@@ -115,8 +117,8 @@ export default function JobDetailScreen({ route, navigation }: any) {
       const { data: professionalProfile } = await supabase
         .from('professional_profiles')
         .select('id')
-        .eq('profile_id', user?.id)
-        .single();
+        .eq('profile_id', user?.id || '')
+        .maybeSingle();
 
       if (!professionalProfile) return;
 
@@ -125,7 +127,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
         .select('id')
         .eq('job_posting_id', jobId)
         .eq('professional_profile_id', professionalProfile.id)
-        .single();
+        .maybeSingle();
 
       setHasApplied(!!data);
     } catch (error) {
@@ -163,11 +165,11 @@ export default function JobDetailScreen({ route, navigation }: any) {
       const { data: professionalProfile } = await supabase
         .from('professional_profiles')
         .select('id')
-        .eq('profile_id', user?.id)
-        .single();
+        .eq('profile_id', user?.id || '')
+        .maybeSingle();
 
       if (!professionalProfile) {
-        Alert.alert('Error', 'Necesitas un perfil profesional para reaccionar');
+        Alert.alert(t('common.error'), t('jobs.detail.errors.profileRequired'));
         return;
       }
 
@@ -194,7 +196,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
       fetchJobDetail(); // Refresh counts
     } catch (error) {
       console.error('Error handling reaction:', error);
-      Alert.alert('Error', 'No se pudo registrar tu reacción');
+      Alert.alert(t('common.error'), t('jobs.detail.errors.reactionFailed'));
     }
   };
 
@@ -202,8 +204,42 @@ export default function JobDetailScreen({ route, navigation }: any) {
     navigation.navigate('JobApply', { jobId });
   };
 
-  const handleContactClient = () => {
-    navigation.navigate('ChatDetail', { userId: job.client_profile_id });
+  const handleContactClient = async () => {
+    if (!user?.id || !job?.client_profile_id) return;
+
+    try {
+      // Verify the user has a professional profile
+      const { data: professionalProfile } = await supabase
+        .from('professional_profiles')
+        .select('id')
+        .eq('profile_id', user.id)
+        .single();
+
+      if (!professionalProfile) {
+        Alert.alert(t('common.error'), t('jobs.detail.errors.chatProfileRequired'));
+        return;
+      }
+
+      // Create or get the conversation immediately
+      // Note: Both parameters must be profiles.id, not professional_profiles.id
+      const conversationId = await createOrGetConversation(
+        job.client_profile_id,  // profiles.id of the client
+        user.id                  // profiles.id of the professional (NOT professionalProfile.id!)
+      );
+
+      if (!conversationId) {
+        Alert.alert(t('common.error'), t('jobs.detail.errors.chatFailed'));
+        return;
+      }
+
+      // Navigate to the conversation that was just created
+      navigation.navigate('ChatDetail', { 
+        conversationId,
+      });
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      Alert.alert(t('common.error'), t('jobs.detail.errors.chatFailed'));
+    }
   };
 
   if (loading) {
@@ -231,7 +267,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
               <ArrowLeft size={24} color="#374151" />
             </TouchableOpacity>
             <Text variant="h3" weight="bold" className="flex-1">
-              {t('jobs.detail.title', 'Detalle del Trabajo')}
+              {t('jobs.detail.title')}
             </Text>
           </View>
 
@@ -249,7 +285,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
               <View className="flex-row items-center">
                 <Clock size={14} color="#6b7280" />
                 <Text variant="caption" color="muted" className="ml-1">
-                  Publicado {new Date(job.created_at).toLocaleDateString('es-AR')}
+                  {t('jobs.detail.publishedDate', { date: new Date(job.created_at).toLocaleDateString('es-AR') })}
                 </Text>
               </View>
             </View>
@@ -272,7 +308,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
           <Card variant="outlined" className="mb-4">
             <View className="p-4">
               <Text variant="h4" weight="bold" className="mb-3">
-                Detalles del trabajo
+                {t('jobs.detail.jobDetails')}
               </Text>
 
               {job.location_city && (
@@ -288,8 +324,8 @@ export default function JobDetailScreen({ route, navigation }: any) {
                 <View className="flex-row items-center mb-3">
                   <Calendar size={20} color="#6b7280" />
                   <Text variant="body" className="ml-3 flex-1">
-                    Inicia: {new Date(job.start_date).toLocaleDateString('es-AR')}
-                    {job.is_recurring && ' (Recurrente)'}
+                    {t('jobs.detail.startDate', { date: new Date(job.start_date).toLocaleDateString('es-AR') })}
+                    {job.is_recurring && t('jobs.detail.recurring')}
                   </Text>
                 </View>
               )}
@@ -298,11 +334,11 @@ export default function JobDetailScreen({ route, navigation }: any) {
                 <DollarSign size={20} color="#10b981" />
                 <Text variant="body" weight="semibold" className="ml-3 text-green-600">
                   {job.budget_min && job.budget_max
-                    ? `$${job.budget_min} - $${job.budget_max}`
+                    ? formatPriceRange(job.budget_min, job.budget_max)
                     : job.budget_min
-                    ? `Desde $${job.budget_min}`
-                    : 'A negociar'}
-                  {job.budget_type === 'hourly' && ' /hora'}
+                    ? `${t('jobs.detail.from')} ${formatCurrency(job.budget_min)}`
+                    : t('jobs.detail.negotiable')}
+                  {job.budget_type === 'hourly' && t('common.perHour')}
                   {job.budget_type === 'daily' && ' /día'}
                 </Text>
               </View>
@@ -313,7 +349,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
           {job.location_latitude && job.location_longitude && (
             <View className="mb-4">
               <Text variant="h4" weight="bold" className="mb-3">
-                Ubicación
+                {t('jobs.detail.location')}
               </Text>
               <LocationMap
                 latitude={job.location_latitude}
@@ -323,7 +359,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
               />
               {!showLocation && (
                 <Text variant="caption" color="muted" className="mt-2">
-                  La ubicación exacta se mostrará después de postularte
+                  {t('jobs.detail.locationNote')}
                 </Text>
               )}
               {showLocation && job.location_latitude && job.location_longitude && (
@@ -346,7 +382,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
                     {job.likes_count || 0}
                   </Text>
                 </View>
-                <Text variant="caption" color="muted">Me gusta</Text>
+                <Text variant="caption" color="muted">{t('jobs.detail.stats.likes')}</Text>
               </View>
 
               <View className="items-center">
@@ -356,7 +392,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
                     {job.applications_count || 0}
                   </Text>
                 </View>
-                <Text variant="caption" color="muted">Postulaciones</Text>
+                <Text variant="caption" color="muted">{t('jobs.detail.stats.applications')}</Text>
               </View>
             </View>
           </Card>
@@ -365,7 +401,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
           {isOwner && applications.length > 0 && (
             <View className="mb-4">
               <Text variant="h4" weight="bold" className="mb-3">
-                Postulaciones ({applications.length})
+                {t('jobs.detail.applicationsSection', { count: applications.length })}
               </Text>
               {applications.map((app) => (
                 <Card key={app.id} variant="outlined" className="mb-2 p-4">
@@ -383,7 +419,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
                       </Text>
                       {app.proposed_price && (
                         <Text variant="caption" color="muted">
-                          Propuesta: ${app.proposed_price}
+                          {t('jobs.detail.proposedPrice', { price: formatCurrency(app.proposed_price) })}
                         </Text>
                       )}
                     </View>
@@ -391,7 +427,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
                       className="bg-blue-600 px-4 py-2 rounded-lg"
                       onPress={() => navigation.navigate('ApplicationDetail', { applicationId: app.id })}
                     >
-                      <Text className="text-white font-medium">Ver</Text>
+                      <Text className="text-white font-medium">{t('jobs.detail.viewApplication')}</Text>
                     </TouchableOpacity>
                   </View>
                 </Card>
@@ -420,7 +456,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
                   <Text className={`ml-2 font-medium ${
                     userReaction === 'like' ? 'text-green-600' : 'text-gray-600'
                   }`}>
-                    Me interesa
+                    {t('jobs.detail.actions.interested')}
                   </Text>
                 </TouchableOpacity>
 
@@ -440,7 +476,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
                   <Text className={`ml-2 font-medium ${
                     userReaction === 'dislike' ? 'text-red-600' : 'text-gray-600'
                   }`}>
-                    No me interesa
+                    {t('jobs.detail.actions.notInterested')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -452,7 +488,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
                 onPress={handleApply}
                 disabled={hasApplied}
               >
-                {hasApplied ? 'Ya postulaste' : 'Postular a este trabajo'}
+                {hasApplied ? t('jobs.detail.actions.alreadyApplied') : t('jobs.detail.actions.apply')}
               </Button>
 
               {hasApplied && (
@@ -462,7 +498,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
                   leftIcon={<MessageCircle size={20} color="#3b82f6" />}
                   onPress={handleContactClient}
                 >
-                  Contactar cliente
+                  {t('jobs.detail.actions.contactClient')}
                 </Button>
               )}
             </View>

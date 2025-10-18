@@ -94,10 +94,10 @@ function randomFloat(min: number, max: number, decimals = 2): number {
   return Number((Math.random() * (max - min) + min).toFixed(decimals));
 }
 
-function generateEmail(firstName: string, lastName: string, index: number): string {
+function generateEmail(firstName: string, lastName: string): string {
   const cleanFirst = firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const cleanLast = lastName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  return `${cleanFirst}.${cleanLast}${index}@example.com`;
+  return `${cleanFirst}.${cleanLast}@example.com`;
 }
 
 function generatePhone(): string {
@@ -109,6 +109,9 @@ async function clearDatabase() {
   console.log('🗑️  Limpiando base de datos...');
   
   // Delete in reverse order of dependencies
+  await supabase.from('job_applications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await supabase.from('job_posting_reactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await supabase.from('job_postings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('reviews').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -164,25 +167,55 @@ async function seedCategories() {
   return data || [];
 }
 
-async function createTestUsers(count: number, userType: 'client' | 'professional') {
-  console.log(`\n👤 Creando ${count} ${userType === 'client' ? 'clientes' : 'profesionales'}...`);
+async function createTestUsers(count: number, defaultMode: 'client' | 'professional', categoryData: any[] = []) {
+  console.log(`\n👤 Creando ${count} usuarios (modo por defecto: ${defaultMode})...`);
   
   const users = [];
+  const usedEmails = new Set<string>();
 
   for (let i = 0; i < count; i++) {
-    const firstName = randomElement(firstNames);
-    const lastName = randomElement(lastNames);
-    const email = generateEmail(firstName, lastName, i);
+    let firstName: string;
+    let lastName: string;
+    let email: string;
+    
+    // Keep trying until we get a unique email
+    do {
+      firstName = randomElement(firstNames);
+      lastName = randomElement(lastNames);
+      email = generateEmail(firstName, lastName);
+    } while (usedEmails.has(email));
+    
+    usedEmails.add(email);
     const password = 'Password123!'; // Same password for all test users
 
-    // Create auth user
+    const city = randomElement(cities);
+    const latOffset = randomFloat(-0.1, 0.1, 6);
+    const lngOffset = randomFloat(-0.1, 0.1, 6);
+    const yearsExp = randomInt(2, 20);
+
+    // Prepare user metadata for the trigger
+    // Note: user_type is no longer needed - trigger sets it to 'both' automatically
+    const userMetadata: any = {
+      full_name: `${firstName} ${lastName}`,
+      default_mode: defaultMode, // Which mode they see first
+    };
+
+    // Add professional-specific metadata (all users get professional profile, but only some have details)
+    if (defaultMode === 'professional' && categoryData.length > 0) {
+      const category = randomElement(categoryData);
+      userMetadata.category_id = category.id;
+      userMetadata.business_name = `${firstName} ${lastName} - ${category.name}`;
+      userMetadata.tagline = `${category.name} profesional con ${yearsExp} años de experiencia`;
+      userMetadata.description = randomElement(bioTemplates).replace('{years}', String(yearsExp));
+      userMetadata.years_experience = yearsExp;
+    }
+
+    // Create auth user - the trigger will create BOTH profile and professional_profile automatically
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: {
-        full_name: `${firstName} ${lastName}`,
-      },
+      user_metadata: userMetadata,
     });
 
     if (authError) {
@@ -195,21 +228,28 @@ async function createTestUsers(count: number, userType: 'client' | 'professional
       continue;
     }
 
-    const city = randomElement(cities);
-    const latOffset = randomFloat(-0.1, 0.1, 6);
-    const lngOffset = randomFloat(-0.1, 0.1, 6);
+    // Wait a bit for the trigger to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Create profile
+    // Get the profile that was created by the trigger
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .insert({
-        id: authData.user.id,
-        user_type: userType,
-        default_mode: userType, // Required field for dual account support
-        full_name: `${firstName} ${lastName}`,
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profileError) {
+      console.error(`❌ Error obteniendo perfil para ${email}:`, profileError.message);
+      continue;
+    }
+
+    // Update the profile with additional location data
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from('profiles')
+      .update({
         phone: generatePhone(),
-        bio: userType === 'professional' 
-          ? randomElement(bioTemplates).replace('{years}', String(randomInt(2, 20)))
+        bio: defaultMode === 'professional' 
+          ? randomElement(bioTemplates).replace('{years}', String(yearsExp))
           : null,
         latitude: city.lat + latOffset,
         longitude: city.lng + lngOffset,
@@ -217,70 +257,80 @@ async function createTestUsers(count: number, userType: 'client' | 'professional
         city: city.name,
         state: city.state,
         postal_code: `88${randomInt(100, 999)}-${randomInt(100, 999)}`,
-        country: 'BR',
-        is_verified: userType === 'professional' ? Math.random() > 0.3 : false,
-        is_active: true,
+        is_verified: defaultMode === 'professional' ? Math.random() > 0.3 : false,
       })
+      .eq('id', authData.user.id)
       .select()
       .single();
 
-    if (profileError) {
-      console.error(`❌ Error creando perfil para ${email}:`, profileError.message);
+    if (updateError) {
+      console.error(`❌ Error actualizando perfil para ${email}:`, updateError.message);
       continue;
     }
 
     users.push({
       auth: authData.user,
-      profile: profileData,
+      profile: updatedProfile || profileData,
       credentials: { email, password },
+      defaultMode,
     });
   }
 
-  console.log(`✅ ${users.length} ${userType === 'client' ? 'clientes' : 'profesionales'} creados`);
+  console.log(`✅ ${users.length} usuarios creados (modo: ${defaultMode})`);
   return users;
 }
 
-async function seedProfessionalProfiles(professionals: any[], categoryData: any[]) {
-  console.log('\n👨‍🔧 Creando perfiles profesionales...');
+async function seedProfessionalProfiles(users: any[], categoryData: any[]) {
+  console.log('\n👨‍🔧 Actualizando perfiles profesionales...');
   
   const professionalProfiles = [];
 
-  for (const prof of professionals) {
-    const category = randomElement(categoryData);
-    const yearsExp = randomInt(2, 20);
-
-    const { data, error } = await supabase
+  for (const user of users) {
+    // Get the professional profile that was created by the trigger (all users now have one)
+    const { data: existingProfile, error: getError } = await supabase
       .from('professional_profiles')
-      .insert({
-        profile_id: prof.profile.id,
-        category_id: category.id,
-        business_name: `${prof.profile.full_name} - ${category.name}`,
-        tagline: `${category.name} profesional con ${yearsExp} anos de experiencia`,
-        description: prof.profile.bio,
-        years_experience: yearsExp,
-        price_range: `R$ ${randomInt(50, 100)}-${randomInt(100, 200)}`,
-        service_radius_km: randomInt(5, 30),
-        is_verified: Math.random() > 0.3,
-        verification_status: Math.random() > 0.3 ? 'approved' : 'pending',
-        average_rating: randomFloat(4.0, 5.0, 2),
-        total_reviews: randomInt(10, 200),
-        total_bookings: randomInt(50, 500),
-        completed_bookings: randomInt(40, 450),
-        accepts_bookings: Math.random() > 0.2,
-        instant_booking: Math.random() > 0.7,
-      })
-      .select()
+      .select('*')
+      .eq('profile_id', user.profile.id)
       .single();
 
-    if (error) {
-      console.error(`❌ Error creando perfil profesional:`, error.message);
+    if (getError || !existingProfile) {
+      console.error(`❌ No se encontró perfil profesional para ${user.profile.full_name}`);
       continue;
     }
 
-    professionalProfiles.push(data);
+    // Only update with rich professional data for users with defaultMode='professional'
+    if (user.defaultMode === 'professional') {
+      const { data, error } = await supabase
+        .from('professional_profiles')
+        .update({
+          price_range: `R$ ${randomInt(50, 100)}-${randomInt(100, 200)}`,
+          service_radius_km: randomInt(5, 30),
+          is_verified: Math.random() > 0.3,
+          verification_status: Math.random() > 0.3 ? 'approved' : 'pending',
+          average_rating: randomFloat(4.0, 5.0, 2),
+          total_reviews: randomInt(10, 200),
+          total_bookings: randomInt(50, 500),
+          completed_bookings: randomInt(40, 450),
+          accepts_bookings: Math.random() > 0.2,
+          instant_booking: Math.random() > 0.7,
+        })
+        .eq('id', existingProfile.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`❌ Error actualizando perfil profesional:`, error.message);
+        continue;
+      }
+
+      professionalProfiles.push(data);
+    } else {
+      // For client-mode users, keep the basic professional profile created by trigger
+      professionalProfiles.push(existingProfile);
+    }
   }
 
-  console.log(`✅ ${professionalProfiles.length} perfiles profesionales creados`);
+  console.log(`✅ ${professionalProfiles.length} perfiles profesionales actualizados`);
   return professionalProfiles;
 }
 
@@ -323,7 +373,7 @@ async function seedProfessionalServices(professionalProfiles: any[]) {
   console.log(`✅ ${count} servicios creados`);
 }
 
-async function seedSubscriptions(professionals: any[]) {
+async function seedSubscriptions(users: any[]) {
   console.log('\n⭐ Creando suscripciones...');
   
   let count = 0;
@@ -338,7 +388,10 @@ async function seedSubscriptions(professionals: any[]) {
     return;
   }
 
-  for (const prof of professionals) {
+  // Only create subscriptions for users with professional mode
+  const professionalUsers = users.filter(u => u.defaultMode === 'professional');
+
+  for (const user of professionalUsers) {
     // Randomly assign a plan (70% chance of having a paid plan)
     const hasPaidPlan = Math.random() > 0.3;
     
@@ -353,7 +406,7 @@ async function seedSubscriptions(professionals: any[]) {
     const { error } = await supabase
       .from('subscriptions')
       .insert({
-        profile_id: prof.profile.id,
+        profile_id: user.profile.id,
         plan_id: plan.id,
         status: 'active',
         current_period_start: startDate.toISOString(),
@@ -442,6 +495,84 @@ async function seedBookings(clients: any[], professionalProfiles: any[]) {
   console.log(`✅ ${count} reservas creadas`);
 }
 
+const jobTitles = [
+  'Necesito plomero para reparar fuga',
+  'Instalación de aire acondicionado',
+  'Pintura de casa completa',
+  'Reparación de techo con goteras',
+  'Mantenimiento de jardín mensual',
+  'Cerrajero para cambio de cerradura',
+  'Electricista para instalar ventiladores',
+  'Limpieza profunda de departamento',
+  'Carpintero para armario a medida',
+  'Reparación de puerta principal',
+];
+
+const jobDescriptions = [
+  'Necesito un profesional confiable para realizar este trabajo. Preferiblemente con experiencia y referencias.',
+  'Trabajo urgente que necesita ser realizado lo antes posible. Busco alguien responsable y puntual.',
+  'Proyecto para realizar en mi casa. Puedo proporcionar algunos materiales si es necesario.',
+  'Busco profesional con experiencia comprobada. El trabajo debe quedar bien hecho.',
+  'Necesito cotización y disponibilidad para empezar pronto. Tengo flexibilidad de horarios.',
+];
+
+async function seedJobPostings(clients: any[], categoryData: any[]) {
+  console.log('\n💼 Creando publicaciones de trabajos...');
+  
+  let count = 0;
+  const budgetTypes = ['hourly', 'daily', 'fixed', 'negotiable'];
+  const statuses = ['open', 'open', 'open', 'in_progress']; // More 'open' jobs
+
+  for (let i = 0; i < 20; i++) {
+    const client = randomElement(clients);
+    const category = Math.random() > 0.3 ? randomElement(categoryData) : null; // 30% without category
+    const budgetType = randomElement(budgetTypes);
+    const city = randomElement(cities);
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + randomInt(1, 30));
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    const jobData: any = {
+      client_profile_id: client.profile.id,
+      title: randomElement(jobTitles),
+      description: randomElement(jobDescriptions),
+      category_id: category?.id || null,
+      budget_type: budgetType,
+      status: randomElement(statuses),
+      location_city: city.name,
+      location_state: city.state,
+      location_latitude: city.lat + randomFloat(-0.05, 0.05, 6),
+      location_longitude: city.lng + randomFloat(-0.05, 0.05, 6),
+      is_recurring: Math.random() > 0.7,
+      expires_at: expiresAt.toISOString(),
+    };
+
+    // Add budget if not negotiable
+    if (budgetType !== 'negotiable') {
+      const budgetMin = randomInt(50, 200);
+      const budgetMax = budgetMin + randomInt(50, 200);
+      jobData.budget_min = budgetMin;
+      jobData.budget_max = budgetMax;
+    }
+
+    // Add start date for some jobs
+    if (Math.random() > 0.5) {
+      jobData.start_date = startDate.toISOString().split('T')[0];
+    }
+
+    const { error } = await supabase
+      .from('job_postings')
+      .insert(jobData);
+
+    if (!error) count++;
+  }
+
+  console.log(`✅ ${count} publicaciones de trabajos creadas`);
+}
+
 async function main() {
   console.log('🌱 Iniciando seed de base de datos...\n');
   console.log('='.repeat(50));
@@ -453,28 +584,53 @@ async function main() {
     // Seed categories
     const categoryData = await seedCategories();
 
-    // Create test users
-    const clients = await createTestUsers(20, 'client');
-    const professionals = await createTestUsers(30, 'professional');
+    // Create test users - ALL users now get BOTH profiles automatically via trigger
+    // We just set different default_mode to indicate their primary use case
+    const clientModeUsers = await createTestUsers(20, 'client', categoryData);
+    const professionalModeUsers = await createTestUsers(30, 'professional', categoryData);
+    
+    // Combine all users
+    const allUsers = [...clientModeUsers, ...professionalModeUsers];
 
-    // Seed professional data
-    const professionalProfiles = await seedProfessionalProfiles(professionals, categoryData);
-    await seedProfessionalServices(professionalProfiles);
-    await seedSubscriptions(professionals);
+    // Update professional profiles for all users (all have one now)
+    const professionalProfiles = await seedProfessionalProfiles(allUsers, categoryData);
+    
+    // Only add services to professional-mode users
+    const activeProfessionalProfiles = professionalProfiles.filter((_, idx) => 
+      allUsers[idx]?.defaultMode === 'professional'
+    );
+    await seedProfessionalServices(activeProfessionalProfiles);
+    
+    // Create subscriptions for professional-mode users
+    await seedSubscriptions(allUsers);
 
-    // Seed interactions
-    await seedReviews(clients, professionalProfiles);
-    await seedBookings(clients, professionalProfiles);
+    // Seed interactions (use client-mode users as clients, professional profiles as professionals)
+    if (clientModeUsers.length > 0 && activeProfessionalProfiles.length > 0) {
+      await seedReviews(clientModeUsers, activeProfessionalProfiles);
+      await seedBookings(clientModeUsers, activeProfessionalProfiles);
+    }
+
+    // Seed job postings
+    if (clientModeUsers.length > 0) {
+      await seedJobPostings(clientModeUsers, categoryData);
+    }
 
     console.log('\n' + '='.repeat(50));
     console.log('\n✅ ¡Seed completado exitosamente!\n');
     console.log('📊 Resumen:');
     console.log(`   - Categorías: ${categoryData.length}`);
-    console.log(`   - Clientes: ${clients.length}`);
-    console.log(`   - Profesionales: ${professionals.length}`);
+    console.log(`   - Total de usuarios: ${allUsers.length} (todos tienen perfil de cliente Y profesional)`);
+    console.log(`   - Usuarios en modo cliente: ${clientModeUsers.length}`);
+    console.log(`   - Usuarios en modo profesional: ${professionalModeUsers.length}`);
+    console.log(`   - Perfiles profesionales activos: ${activeProfessionalProfiles.length}`);
+    console.log('\n💡 Nueva regla de negocio:');
+    console.log('   - TODOS los usuarios tienen ambos perfiles (cliente + profesional)');
+    console.log('   - default_mode determina qué vista ven primero');
+    console.log('   - Los usuarios pueden cambiar entre modos en cualquier momento');
     console.log('\n🔐 Credenciales de prueba:');
-    console.log('   Email: cualquier email generado (ej: juan.garcia0@example.com)');
+    console.log('   Email: [nombre].[apellido][timestamp]@example.com');
     console.log('   Password: Password123!');
+    console.log('\n💡 Ejemplo: Use cualquier email generado durante el seed');
     console.log('\n');
 
   } catch (error) {

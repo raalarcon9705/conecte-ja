@@ -122,3 +122,4 @@ export async function openSystemMaps(
     await Linking.openURL(url);
   }
 }
+

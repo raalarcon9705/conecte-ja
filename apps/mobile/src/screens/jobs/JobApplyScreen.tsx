@@ -14,11 +14,12 @@ import {
 } from '@conecteja/ui-mobile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSupabase } from '../../hooks/useSupabase';
+import { formatCurrency } from '@conecteja/utils';
 
 export default function JobApplyScreen({ route, navigation }: any) {
   const { jobId } = route.params;
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, currentMode } = useAuth();
   const supabase = useSupabase();
 
   const [job, setJob] = useState<any>(null);
@@ -28,9 +29,23 @@ export default function JobApplyScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Redirect clients to job detail - applications are only for professionals
   useEffect(() => {
-    loadData();
-  }, []);
+    if (currentMode === 'client') {
+      Alert.alert(
+        t('common.error'),
+        t('jobs.apply.errors.professionalOnly'),
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+    }
+  }, [currentMode, navigation, t]);
+
+  useEffect(() => {
+    if (currentMode === 'professional') {
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMode]);
 
   const loadData = async () => {
     try {
@@ -44,16 +59,46 @@ export default function JobApplyScreen({ route, navigation }: any) {
         .single();
 
       if (jobError) throw jobError;
+
+      // Check if user is the owner of this job posting
+      if (jobData.client_profile_id === user?.id) {
+        Alert.alert(
+          t('common.error'),
+          t('jobs.apply.errors.cannotApplyOwn'),
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+        return;
+      }
+
       setJob(jobData);
 
       // Fetch professional profile
+      if (!user?.id) {
+        Alert.alert(
+          t('common.error'),
+          t('jobs.apply.errors.loginRequired'),
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+        return;
+      }
+
       const { data: profData, error: profError } = await supabase
         .from('professional_profiles')
         .select('*')
-        .eq('profile_id', user?.id)
-        .single();
+        .eq('profile_id', user.id)
+        .maybeSingle();
 
       if (profError) throw profError;
+      
+      if (!profData) {
+        Alert.alert(
+          t('common.error'),
+          t('jobs.apply.errors.profileRequired'),
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+        return;
+      }
+
       setProfessionalProfile(profData);
 
       // Pre-fill with job budget if available
@@ -64,7 +109,7 @@ export default function JobApplyScreen({ route, navigation }: any) {
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      Alert.alert('Error', 'No se pudo cargar la información');
+      Alert.alert(t('common.error'), t('jobs.apply.errors.loadFailed'));
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -73,12 +118,12 @@ export default function JobApplyScreen({ route, navigation }: any) {
 
   const handleSubmit = async () => {
     if (!coverLetter.trim()) {
-      Alert.alert('Error', 'Por favor escribe una carta de presentación');
+      Alert.alert(t('common.error'), t('jobs.apply.errors.coverLetterRequired'));
       return;
     }
 
     if (!proposedPrice.trim()) {
-      Alert.alert('Error', 'Por favor ingresa tu tarifa propuesta');
+      Alert.alert(t('common.error'), t('jobs.apply.errors.rateRequired'));
       return;
     }
 
@@ -101,7 +146,10 @@ export default function JobApplyScreen({ route, navigation }: any) {
 
       if (error) {
         if (error.code === '23505') {
-          Alert.alert('Ya postulaste', 'Ya has enviado una postulación para este trabajo');
+          Alert.alert(
+            t('jobs.apply.alreadyApplied.title'),
+            t('jobs.apply.alreadyApplied.message')
+          );
           navigation.goBack();
           return;
         }
@@ -109,11 +157,11 @@ export default function JobApplyScreen({ route, navigation }: any) {
       }
 
       Alert.alert(
-        '¡Postulación enviada!',
-        'El cliente revisará tu propuesta y te contactará si está interesado.',
+        t('jobs.apply.success.title'),
+        t('jobs.apply.success.message'),
         [
           {
-            text: 'Ver trabajo',
+            text: t('jobs.apply.success.viewJob'),
             onPress: () => {
               navigation.replace('JobDetail', { jobId });
             },
@@ -122,7 +170,7 @@ export default function JobApplyScreen({ route, navigation }: any) {
       );
     } catch (error) {
       console.error('Error submitting application:', error);
-      Alert.alert('Error', 'No se pudo enviar tu postulación. Intenta nuevamente.');
+      Alert.alert(t('common.error'), t('jobs.apply.errors.submitFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -150,12 +198,12 @@ export default function JobApplyScreen({ route, navigation }: any) {
               <ArrowLeft size={24} color="#374151" />
             </TouchableOpacity>
             <Text variant="h3" weight="bold" className="flex-1">
-              {t('jobs.apply.title', 'Postular al trabajo')}
+              {t('jobs.apply.title')}
             </Text>
           </View>
 
           <Text variant="body" color="muted" className="mb-6">
-            Envía tu propuesta a {job.profiles?.full_name}
+            {t('jobs.apply.sendProposal', { name: job.profiles?.full_name })}
           </Text>
 
           {/* Job Summary */}
@@ -168,7 +216,7 @@ export default function JobApplyScreen({ route, navigation }: any) {
             </Text>
             {job.budget_min && job.budget_max && (
               <Text variant="caption" color="muted" className="mt-2">
-                Presupuesto: ${job.budget_min} - ${job.budget_max}
+                {t('jobs.apply.budgetLabel')} {formatCurrency(job.budget_min)} - {formatCurrency(job.budget_max)}
               </Text>
             )}
           </Card>
@@ -176,22 +224,22 @@ export default function JobApplyScreen({ route, navigation }: any) {
           {/* Cover Letter */}
           <View className="mb-4">
             <Text variant="body" weight="medium" className="mb-2">
-              Carta de presentación *
+              {t('jobs.apply.coverLetter')} *
             </Text>
             <Input
               value={coverLetter}
               onChangeText={setCoverLetter}
-              placeholder="Cuéntale al cliente por qué eres la persona ideal para este trabajo. Destaca tu experiencia, habilidades y disponibilidad."
+              placeholder={t('jobs.apply.coverLetterPlaceholder')}
               multiline
               numberOfLines={8}
               maxLength={500}
             />
             <Text variant="caption" color="muted" className="mt-1">
-              {coverLetter.length}/500 caracteres
+              {t('jobs.apply.charactersCount', { count: coverLetter.length })}
             </Text>
-            <Card variant="ghost" className="mt-2 p-3">
+            <Card variant="outlined" className="mt-2 p-3 bg-blue-50">
               <Text variant="caption" className="text-blue-600">
-                💡 Tip: Menciona experiencias previas similares y tu disponibilidad específica
+                {t('jobs.apply.coverLetterTip')}
               </Text>
             </Card>
           </View>
@@ -199,51 +247,51 @@ export default function JobApplyScreen({ route, navigation }: any) {
           {/* Proposed Price */}
           <View className="mb-6">
             <Text variant="body" weight="medium" className="mb-2">
-              Tu tarifa propuesta *
+              {t('jobs.apply.proposedRate')} *
             </Text>
             <Input
               value={proposedPrice}
               onChangeText={setProposedPrice}
-              placeholder="Ej: 5000"
+              placeholder={t('jobs.apply.proposedRatePlaceholder')}
               keyboardType="numeric"
               leftIcon={<Text className="text-gray-500">$</Text>}
             />
             <Text variant="caption" color="muted" className="mt-1">
-              Ingresa la tarifa que cobrarías por este trabajo
-              {job.budget_type === 'hourly' && ' (por hora)'}
-              {job.budget_type === 'daily' && ' (por día)'}
+              {t('jobs.apply.proposedRateNote')}
+              {job.budget_type === 'hourly' && t('jobs.apply.proposedRateHourly')}
+              {job.budget_type === 'daily' && t('jobs.apply.proposedRateDaily')}
             </Text>
           </View>
 
           {/* Profile Preview */}
           <Card variant="outlined" className="mb-6 p-4">
             <Text variant="h4" weight="bold" className="mb-3">
-              Vista previa de tu perfil
+              {t('jobs.apply.profilePreview')}
             </Text>
             <View className="space-y-2">
               <View className="flex-row">
                 <Text variant="body" color="muted" className="w-24">
-                  Rating:
+                  {t('jobs.apply.rating')}
                 </Text>
                 <Text variant="body" weight="medium">
-                  ⭐ {professionalProfile.average_rating?.toFixed(1) || 'N/A'} ({professionalProfile.total_reviews || 0} reseñas)
+                  ⭐ {professionalProfile.average_rating?.toFixed(1) || 'N/A'} ({professionalProfile.total_reviews || 0} {t('jobs.apply.reviews')})
                 </Text>
               </View>
               <View className="flex-row">
                 <Text variant="body" color="muted" className="w-24">
-                  Trabajos:
+                  {t('jobs.apply.jobs')}
                 </Text>
                 <Text variant="body" weight="medium">
-                  {professionalProfile.completed_bookings || 0} completados
+                  {professionalProfile.completed_bookings || 0} {t('jobs.apply.completed')}
                 </Text>
               </View>
               {professionalProfile.is_verified && (
                 <View className="flex-row items-center">
                   <Text variant="body" color="muted" className="w-24">
-                    Estado:
+                    {t('jobs.apply.status')}
                   </Text>
                   <Text variant="body" weight="medium" className="text-blue-600">
-                    ✓ Verificado
+                    {t('jobs.apply.verified')}
                   </Text>
                 </View>
               )}
@@ -258,7 +306,7 @@ export default function JobApplyScreen({ route, navigation }: any) {
             loading={submitting}
             disabled={submitting || !coverLetter.trim() || !proposedPrice.trim()}
           >
-            {t('jobs.apply.submit', 'Enviar postulación')}
+            {t('jobs.apply.submit')}
           </Button>
 
           <Spacer size="xl" />

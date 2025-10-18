@@ -4,9 +4,9 @@
  * Permite abrir la ubicación en diferentes apps de transporte y mapas
  */
 
+import { NavigationApp, getNavigationApps, openNavigationApp } from '@conecteja/utils';
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text, View } from 'react-native';
-import { getNavigationApps, openNavigationApp, NavigationApp } from '../../../../apps/mobile/src/utils/navigation';
 
 interface NavigationButtonsProps {
   latitude: number;

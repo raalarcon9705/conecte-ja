@@ -10,16 +10,15 @@ import {
   Button,
   Container,
   Spacer,
-  Card,
   LocationMap,
 } from '@conecteja/ui-mobile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSupabase } from '../../hooks/useSupabase';
-import { LocationPrivacy } from '../../utils/geolocation';
+import { LocationPrivacy } from '@conecteja/utils';
 
 export default function CreateJobScreen({ navigation }: any) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, currentMode } = useAuth();
   const supabase = useSupabase();
 
   const [title, setTitle] = useState('');
@@ -32,6 +31,17 @@ export default function CreateJobScreen({ navigation }: any) {
   const [isRecurring, setIsRecurring] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Redirect professionals to home - job creation is only for clients
+  React.useEffect(() => {
+    if (currentMode === 'professional') {
+      Alert.alert(
+        t('common.error'),
+        t('jobs.create.errors.clientOnly'),
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+    }
+  }, [currentMode, navigation, t]);
+
   // Mock location - in real app, use geolocation
   const [coordinates, setCoordinates] = useState({
     latitude: -34.6037,
@@ -40,7 +50,12 @@ export default function CreateJobScreen({ navigation }: any) {
 
   const handleSubmit = async () => {
     if (!title.trim() || !description.trim()) {
-      Alert.alert('Error', 'Por favor completa todos los campos requeridos');
+      Alert.alert(t('common.error'), t('jobs.create.errors.requiredFields'));
+      return;
+    }
+
+    if (!user?.id) {
+      Alert.alert(t('common.error'), t('jobs.create.errors.loginRequired'));
       return;
     }
 
@@ -48,7 +63,7 @@ export default function CreateJobScreen({ navigation }: any) {
       setLoading(true);
 
       const jobData = {
-        client_profile_id: user?.id,
+        client_profile_id: user.id,
         title: title.trim(),
         description: description.trim(),
         location_city: location.trim() || null,
@@ -72,17 +87,17 @@ export default function CreateJobScreen({ navigation }: any) {
       if (error) throw error;
 
       Alert.alert(
-        '¡Éxito!',
-        'Tu trabajo ha sido publicado correctamente',
+        t('jobs.create.success.title'),
+        t('jobs.create.success.message'),
         [
           {
-            text: 'Ver trabajo',
+            text: t('jobs.create.success.viewJob'),
             onPress: () => {
               navigation.replace('JobDetail', { jobId: data.id });
             },
           },
           {
-            text: 'Ver todos',
+            text: t('jobs.create.success.viewAll'),
             onPress: () => {
               navigation.goBack();
             },
@@ -91,7 +106,7 @@ export default function CreateJobScreen({ navigation }: any) {
       );
     } catch (error) {
       console.error('Error creating job:', error);
-      Alert.alert('Error', 'No se pudo publicar el trabajo. Intenta nuevamente.');
+      Alert.alert(t('common.error'), t('jobs.create.errors.publishFailed'));
     } finally {
       setLoading(false);
     }
@@ -107,23 +122,23 @@ export default function CreateJobScreen({ navigation }: any) {
               <ArrowLeft size={24} color="#374151" />
             </TouchableOpacity>
             <Text variant="h3" weight="bold" className="flex-1">
-              {t('jobs.create.title', 'Publicar Trabajo')}
+              {t('jobs.create.title')}
             </Text>
           </View>
 
           <Text variant="body" color="muted" className="mb-6">
-            {t('jobs.create.subtitle', 'Describe el trabajo que necesitas')}
+            {t('jobs.create.subtitle')}
           </Text>
 
           {/* Title */}
           <View className="mb-4">
             <Text variant="body" weight="medium" className="mb-2">
-              Título *
+              {t('jobs.create.titleField')} *
             </Text>
             <Input
               value={title}
               onChangeText={setTitle}
-              placeholder="Ej: Busco niñera para 2 niños"
+              placeholder={t('jobs.create.titlePlaceholder')}
               maxLength={100}
             />
           </View>
@@ -131,30 +146,30 @@ export default function CreateJobScreen({ navigation }: any) {
           {/* Description */}
           <View className="mb-4">
             <Text variant="body" weight="medium" className="mb-2">
-              Descripción completa *
+              {t('jobs.create.descriptionField')} *
             </Text>
             <Input
               value={description}
               onChangeText={setDescription}
-              placeholder="Describe en detalle el trabajo, horarios, requisitos..."
+              placeholder={t('jobs.create.descriptionPlaceholder')}
               multiline
               numberOfLines={6}
               maxLength={1000}
             />
             <Text variant="caption" color="muted" className="mt-1">
-              {description.length}/1000 caracteres
+              {t('jobs.create.charactersCount', { count: description.length })}
             </Text>
           </View>
 
           {/* Location */}
           <View className="mb-4">
             <Text variant="body" weight="medium" className="mb-2">
-              Ubicación
+              {t('jobs.create.location')}
             </Text>
             <Input
               value={location}
               onChangeText={setLocation}
-              placeholder="Ciudad, barrio"
+              placeholder={t('jobs.create.locationPlaceholder')}
               leftIcon={<MapPin size={20} color="#6b7280" />}
             />
           </View>
@@ -162,7 +177,7 @@ export default function CreateJobScreen({ navigation }: any) {
           {/* Map Preview */}
           <View className="mb-6">
             <Text variant="body" weight="medium" className="mb-2">
-              Vista previa de ubicación
+              {t('jobs.create.locationPreview')}
             </Text>
             <LocationMap
               latitude={coordinates.latitude}
@@ -171,21 +186,21 @@ export default function CreateJobScreen({ navigation }: any) {
               radius={1000}
             />
             <Text variant="caption" color="muted" className="mt-2">
-              La ubicación exacta solo se mostrará después de aceptar una postulación
+              {t('jobs.create.locationNote')}
             </Text>
           </View>
 
           {/* Budget */}
           <View className="mb-4">
             <Text variant="body" weight="medium" className="mb-2">
-              Presupuesto
+              {t('jobs.create.budget')}
             </Text>
             <View className="flex-row gap-2 mb-2">
               <View className="flex-1">
                 <Input
                   value={budgetMin}
                   onChangeText={setBudgetMin}
-                  placeholder="Mínimo"
+                  placeholder={t('jobs.create.budgetMin')}
                   keyboardType="numeric"
                 />
               </View>
@@ -193,7 +208,7 @@ export default function CreateJobScreen({ navigation }: any) {
                 <Input
                   value={budgetMax}
                   onChangeText={setBudgetMax}
-                  placeholder="Máximo"
+                  placeholder={t('jobs.create.budgetMax')}
                   keyboardType="numeric"
                 />
               </View>
@@ -218,10 +233,7 @@ export default function CreateJobScreen({ navigation }: any) {
                       budgetType === type ? 'text-blue-600' : 'text-gray-600'
                     }`}
                   >
-                    {type === 'hourly' && 'Por hora'}
-                    {type === 'daily' && 'Por día'}
-                    {type === 'fixed' && 'Fijo'}
-                    {type === 'negotiable' && 'Negociable'}
+                    {t(`jobs.create.budgetTypes.${type}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -231,12 +243,12 @@ export default function CreateJobScreen({ navigation }: any) {
           {/* Start Date */}
           <View className="mb-4">
             <Text variant="body" weight="medium" className="mb-2">
-              Fecha de inicio (opcional)
+              {t('jobs.create.startDate')}
             </Text>
             <Input
               value={startDate}
               onChangeText={setStartDate}
-              placeholder="YYYY-MM-DD"
+              placeholder={t('jobs.create.startDatePlaceholder')}
               keyboardType="numeric"
             />
           </View>
@@ -253,7 +265,7 @@ export default function CreateJobScreen({ navigation }: any) {
             >
               {isRecurring && <Text className="text-white text-xs">✓</Text>}
             </View>
-            <Text variant="body">Trabajo recurrente</Text>
+            <Text variant="body">{t('jobs.create.recurring')}</Text>
           </TouchableOpacity>
 
           {/* Submit Button */}
@@ -264,7 +276,7 @@ export default function CreateJobScreen({ navigation }: any) {
             loading={loading}
             disabled={loading}
           >
-            {t('jobs.create.submit', 'Publicar Trabajo')}
+            {t('jobs.create.submit')}
           </Button>
 
           <Spacer size="xl" />

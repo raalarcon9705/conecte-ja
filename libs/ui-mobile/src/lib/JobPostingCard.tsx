@@ -1,7 +1,9 @@
 /** @jsxImportSource nativewind */
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { MapPin, Calendar, DollarSign, ThumbsUp, ThumbsDown, Clock } from 'lucide-react-native';
+import { formatCurrency, formatPriceRange } from '@conecteja/utils';
 import { Avatar } from './Avatar';
 import { Badge } from './Badge';
 
@@ -54,31 +56,26 @@ export function JobPostingCard({
   onPress,
   onLike,
   onDislike,
+  onApply,
   showActions = true,
 }: JobPostingCardProps) {
+  const { t } = useTranslation();
+  
   const getBudgetText = () => {
-    if (budgetType === 'negotiable') return 'A negociar';
-    if (!budgetMin && !budgetMax) return 'A negociar';
-
-    const formatPrice = (price: number) => {
-      return new Intl.NumberFormat('es-AR', {
-        style: 'currency',
-        currency: 'ARS',
-        minimumFractionDigits: 0,
-      }).format(price);
-    };
+    if (budgetType === 'negotiable') return t('jobs.card.negotiable');
+    if (!budgetMin && !budgetMax) return t('jobs.card.negotiable');
 
     if (budgetMin && budgetMax) {
-      return `${formatPrice(budgetMin)} - ${formatPrice(budgetMax)}`;
+      return formatPriceRange(budgetMin, budgetMax);
     }
-    return formatPrice(budgetMin || budgetMax || 0);
+    return formatCurrency(budgetMin || budgetMax || 0);
   };
 
   const getBudgetTypeLabel = () => {
     const labels = {
-      hourly: '/hora',
-      daily: '/día',
-      fixed: 'fijo',
+      hourly: t('jobs.card.hourly'),
+      daily: t('jobs.card.daily'),
+      fixed: t('jobs.card.fixed'),
       negotiable: ''
     };
     return labels[budgetType];
@@ -92,9 +89,9 @@ export function JobPostingCard({
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 60) return `hace ${diffMins}m`;
-    if (diffHours < 24) return `hace ${diffHours}h`;
-    return `hace ${diffDays}d`;
+    if (diffMins < 60) return t('jobs.card.timeAgo.minutes', { count: diffMins });
+    if (diffHours < 24) return t('jobs.card.timeAgo.hours', { count: diffHours });
+    return t('jobs.card.timeAgo.days', { count: diffDays });
   };
 
   return (
@@ -145,7 +142,7 @@ export function JobPostingCard({
             <Calendar size={16} color="#6b7280" />
             <Text className="text-sm text-gray-600 ml-2">
               {new Date(startDate).toLocaleDateString('es-AR')}
-              {isRecurring && ' (recurrente)'}
+              {isRecurring && ` ${t('jobs.card.recurring')}`}
             </Text>
           </View>
         )}
@@ -172,7 +169,7 @@ export function JobPostingCard({
         </View>
 
         <Text className="text-sm text-gray-600">
-          {applicationsCount} {applicationsCount === 1 ? 'postulación' : 'postulaciones'}
+          {t(applicationsCount === 1 ? 'jobs.card.applications_one' : 'jobs.card.applications_other', { count: applicationsCount })}
         </Text>
       </View>
 
@@ -195,7 +192,7 @@ export function JobPostingCard({
             <Text className={`ml-2 font-medium ${
               hasUserLiked ? 'text-green-600' : 'text-gray-600'
             }`}>
-              Me interesa
+              {t('jobs.card.interested')}
             </Text>
           </TouchableOpacity>
 
@@ -209,7 +206,7 @@ export function JobPostingCard({
             disabled={hasUserApplied}
           >
             <Text className="text-white font-bold">
-              {hasUserApplied ? 'Postulado' : 'Postular'}
+              {hasUserApplied ? t('jobs.card.applied') : t('jobs.card.apply')}
             </Text>
           </TouchableOpacity>
         </View>

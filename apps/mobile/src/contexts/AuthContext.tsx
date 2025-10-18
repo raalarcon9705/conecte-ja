@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { RegisterSchema } from '@conecteja/schemas';
 import { useSupabase } from '../hooks/useSupabase';
@@ -33,7 +33,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const supabase = useSupabase();
 
   // Check if user has a professional account
-  const checkProfessionalAccount = async (): Promise<boolean> => {
+  // NOTE: With the new business rule, ALL users have professional profiles by default
+  // This check should always return true for authenticated users
+  const checkProfessionalAccount = useCallback(async (): Promise<boolean> => {
     try {
       if (!user) return false;
       
@@ -50,16 +52,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error checking professional account:', error);
       return false;
     }
-  };
+  }, [user, supabase]);
 
   // Refresh account status (professional account and current mode)
-  const refreshAccountStatus = async () => {
+  const refreshAccountStatus = useCallback(async () => {
     if (!user) return;
     
     await checkProfessionalAccount();
     const mode = await getCurrentAccountMode();
     setCurrentMode(mode);
-  };
+  }, [user, checkProfessionalAccount]);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -71,7 +73,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Load saved mode and check professional account
         const mode = await getCurrentAccountMode();
         setCurrentMode(mode);
-        await checkProfessionalAccount();
+        
+        // Check professional account
+        const { data, error } = await supabase
+          .from('professional_profiles')
+          .select('id')
+          .eq('profile_id', currentUser.id)
+          .single();
+        
+        const hasProfessional = !error && !!data;
+        setHasProfessionalAccount(hasProfessional);
       }
     };
 
@@ -84,7 +95,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (currentUser) {
         const mode = await getCurrentAccountMode();
         setCurrentMode(mode);
-        await checkProfessionalAccount();
+        
+        // Check professional account
+        const { data, error } = await supabase
+          .from('professional_profiles')
+          .select('id')
+          .eq('profile_id', currentUser.id)
+          .single();
+        
+        const hasProfessional = !error && !!data;
+        setHasProfessionalAccount(hasProfessional);
       } else {
         setCurrentMode('client');
         setHasProfessionalAccount(false);
@@ -100,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(newUser);
   };
 
-  const register = async (formData: RegisterSchema) => {
+  const register = useCallback(async (formData: RegisterSchema) => {
     const { error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -115,33 +135,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       throw error;
     }
-  };
+  }, [supabase]);
 
-  const sendPasswordResetEmail = async (email: string) => {
+  const sendPasswordResetEmail = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: '' // Your password reset page URL
     });
     if (error) {
       throw error;
     }
-  };
+  }, [supabase]);
 
-  const switchMode = async (mode: AccountMode) => {
+  const switchMode = useCallback(async (mode: AccountMode) => {
     try {
-      // If switching to professional mode, verify they have a professional account
-      if (mode === 'professional' && !hasProfessionalAccount) {
-        throw new Error('No professional account found. Please create one first.');
-      }
-      
+      // With the new business rule, all users have both profiles
+      // So we can switch modes freely without checking
       await setCurrentAccountMode(mode);
       setCurrentMode(mode);
     } catch (error) {
       console.error('Error switching mode:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -156,10 +173,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Logout failed:', error);
       throw error;
     }
-  };
+  }, [supabase]);
 
-  // Can switch mode if user has professional account
-  const canSwitchMode = hasProfessionalAccount;
+  // With the new business rule, all authenticated users can switch modes
+  // because they all have both client and professional profiles
+  const canSwitchMode = !!user;
 
   return (
     <AuthContext.Provider

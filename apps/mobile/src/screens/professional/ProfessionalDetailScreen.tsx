@@ -14,7 +14,6 @@ import {
   Badge,
   VerificationBadge,
   LocationTag,
-  Divider,
   Tabs,
   ServiceCard,
   ReviewCard,
@@ -27,8 +26,15 @@ import { useProfessionalDetails } from '../../hooks';
 export default function ProfessionalDetailScreen({ navigation, route }: any) {
   const { t } = useTranslation();
   const { id } = route.params;
-  const { user } = useAuth();
+  const { user, currentMode } = useAuth();
   const [creatingChat, setCreatingChat] = useState(false);
+
+  // Redirect professionals to home - professional details are only for clients
+  React.useEffect(() => {
+    if (currentMode === 'professional') {
+      navigation.replace('Home');
+    }
+  }, [currentMode, navigation]);
 
   // Custom hook that handles all the data fetching logic
   const {

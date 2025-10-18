@@ -16,6 +16,7 @@ import { FavoritesProvider } from '../contexts/FavoritesContext';
 import { NotificationsProvider } from '../contexts/NotificationsContext';
 import { SubscriptionsProvider } from '../contexts/SubscriptionsContext';
 import { ProfileProvider } from '../contexts/ProfileContext';
+import { JobPostingsProvider } from '../contexts/JobPostingsContext';
 import { hasCompletedOnboarding } from '@conecteja/supabase';
 
 // Auth Screens
@@ -182,7 +183,9 @@ export default function App() {
                   <ChatsProvider>
                     <FavoritesProvider>
                       <NotificationsProvider>
-                        <AppNavigator />
+                        <JobPostingsProvider>
+                          <AppNavigator />
+                        </JobPostingsProvider>
                       </NotificationsProvider>
                     </FavoritesProvider>
                   </ChatsProvider>

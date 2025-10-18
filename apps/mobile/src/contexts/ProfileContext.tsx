@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import type { Database } from '@conecteja/types';
 
@@ -32,7 +32,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const supabase = useSupabase();
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -97,9 +97,9 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const updateProfile = async (updates: Partial<Profile>) => {
+  const updateProfile = useCallback(async (updates: Partial<Profile>) => {
     try {
       setError(null);
 
@@ -125,9 +125,9 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       setError(err.message || 'Error al actualizar perfil');
       throw err;
     }
-  };
+  }, [supabase]);
 
-  const updateProfessionalProfile = async (updates: Partial<ProfessionalProfile>) => {
+  const updateProfessionalProfile = useCallback(async (updates: Partial<ProfessionalProfile>) => {
     try {
       setError(null);
 
@@ -164,9 +164,9 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       setError(err.message || 'Error al actualizar perfil profesional');
       throw err;
     }
-  };
+  }, [supabase, profile]);
 
-  const uploadAvatar = async (file: File | Blob, userId: string): Promise<string | null> => {
+  const uploadAvatar = useCallback(async (file: File | Blob, userId: string): Promise<string | null> => {
     try {
       setError(null);
 
@@ -199,9 +199,9 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       setError(err.message || 'Error al subir avatar');
       throw err;
     }
-  };
+  }, [supabase, updateProfile]);
 
-  const updateLocation = async (
+  const updateLocation = useCallback(async (
     latitude: number,
     longitude: number,
     address?: string,
@@ -226,9 +226,9 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       setError(err.message || 'Error al actualizar ubicación');
       throw err;
     }
-  };
+  }, [updateProfile]);
 
-  const updateLastSeen = async () => {
+  const updateLastSeen = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -239,36 +239,50 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
         .update({ last_seen_at: new Date().toISOString() })
         .eq('id', user.id);
 
-      // Update local state
-      setProfile((prev) =>
-        prev
-          ? { ...prev, last_seen_at: new Date().toISOString() }
-          : null
-      );
+      // Update local state without causing re-render of dependent components
+      setProfile((prev) => {
+        if (!prev) return null;
+        // Only update if more than 1 minute has passed to avoid unnecessary updates
+        const lastUpdate = prev.last_seen_at ? new Date(prev.last_seen_at).getTime() : 0;
+        const now = Date.now();
+        if (now - lastUpdate < 60000) return prev; // Less than 1 minute, don't update
+        
+        return { ...prev, last_seen_at: new Date().toISOString() };
+      });
     } catch (err: any) {
       // Silently fail for last seen updates
       console.error('Error updating last seen:', err);
     }
-  };
+  }, [supabase]);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     if (currentUserId) {
       await fetchProfile(currentUserId);
     }
-  };
+  }, [currentUserId, fetchProfile]);
 
-  // Update last seen periodically
+  // Update last seen periodically - use ref to avoid dependency issues
+  const profileIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
-    if (!profile) return;
+    if (profile?.id) {
+      profileIdRef.current = profile.id;
+    }
+  }, [profile?.id]);
 
+  useEffect(() => {
+    if (!profileIdRef.current) return;
+
+    // Initial update
     updateLastSeen();
 
+    // Update every 5 minutes
     const interval = setInterval(() => {
       updateLastSeen();
-    }, 5 * 60 * 1000); // Every 5 minutes
+    }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [profile]);
+  }, [updateLastSeen]);
 
   return (
     <ProfileContext.Provider

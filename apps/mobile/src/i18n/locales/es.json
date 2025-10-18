@@ -121,14 +121,21 @@
         "pendingBookings": "Reservas pendientes",
         "unreadMessages": "Mensajes sin leer"
       },
+      "availableJobs": "Trabajos Disponibles",
+      "noJobs": "No hay trabajos disponibles en este momento",
+      "checkBack": "Vuelve más tarde para ver nuevas oportunidades",
       "quickActions": "Acciones rápidas",
       "actions": {
         "viewBookings": "Ver reservas",
         "viewMessages": "Ver mensajes",
-        "editProfile": "Editar perfil"
+        "editProfile": "Editar perfil",
+        "viewJobs": "Ver trabajos disponibles"
       },
       "recentActivity": "Actividad reciente",
-      "noRecentActivity": "No hay actividad reciente"
+      "noRecentActivity": "No hay actividad reciente",
+      "errors": {
+        "reactionFailed": "No se pudo registrar tu reacción. Intenta nuevamente."
+      }
     }
   },
   "search": {
@@ -225,7 +232,9 @@
     },
     "empty": {
       "title": "No hay conversaciones",
-      "description": "Comienza a chatear con profesionales. ¡Busca un profesional e inicia una conversación!"
+      "description": "Comienza a chatear con profesionales o clientes. ¡Encuentra personas con las que trabajar e inicia una conversación!",
+      "actionClient": "Buscar Profesionales",
+      "actionProfessional": "Ver Trabajos Disponibles"
     },
     "detail": {
       "online": "En línea",
@@ -363,6 +372,159 @@
       ]
     },
     "footer": "Los precios están en dólares estadounidenses. Se renovará automáticamente a menos que se cancele."
+  },
+  "jobs": {
+    "create": {
+      "title": "Publicar Trabajo",
+      "subtitle": "Describe el trabajo que necesitas",
+      "titleField": "Título",
+      "titlePlaceholder": "Ej: Busco niñera para 2 niños",
+      "descriptionField": "Descripción completa",
+      "descriptionPlaceholder": "Describe en detalle el trabajo, horarios, requisitos...",
+      "charactersCount": "{{count}}/1000 caracteres",
+      "location": "Ubicación",
+      "locationPlaceholder": "Ciudad, barrio",
+      "locationPreview": "Vista previa de ubicación",
+      "locationNote": "La ubicación exacta solo se mostrará después de aceptar una postulación",
+      "budget": "Presupuesto",
+      "budgetMin": "Mínimo",
+      "budgetMax": "Máximo",
+      "budgetTypes": {
+        "hourly": "Por hora",
+        "daily": "Por día",
+        "fixed": "Fijo",
+        "negotiable": "Negociable"
+      },
+      "startDate": "Fecha de inicio (opcional)",
+      "startDatePlaceholder": "YYYY-MM-DD",
+      "recurring": "Trabajo recurrente",
+      "submit": "Publicar Trabajo",
+      "success": {
+        "title": "¡Éxito!",
+        "message": "Tu trabajo ha sido publicado correctamente",
+        "viewJob": "Ver trabajo",
+        "viewAll": "Ver todos"
+      },
+      "errors": {
+        "requiredFields": "Por favor completa todos los campos requeridos",
+        "loginRequired": "Debes iniciar sesión para publicar un trabajo",
+        "publishFailed": "No se pudo publicar el trabajo. Intenta nuevamente.",
+        "clientOnly": "Solo los clientes pueden publicar trabajos"
+      }
+    },
+    "apply": {
+      "title": "Postular al trabajo",
+      "sendProposal": "Envía tu propuesta a {{name}}",
+      "coverLetter": "Carta de presentación",
+      "coverLetterPlaceholder": "Cuéntale al cliente por qué eres la persona ideal para este trabajo. Destaca tu experiencia, habilidades y disponibilidad.",
+      "charactersCount": "{{count}}/500 caracteres",
+      "coverLetterTip": "💡 Tip: Menciona experiencias previas similares y tu disponibilidad específica",
+      "proposedRate": "Tu tarifa propuesta",
+      "proposedRatePlaceholder": "Ej: 5000",
+      "proposedRateNote": "Ingresa la tarifa que cobrarías por este trabajo",
+      "proposedRateHourly": " (por hora)",
+      "proposedRateDaily": " (por día)",
+      "profilePreview": "Vista previa de tu perfil",
+      "rating": "Rating:",
+      "reviews": "reseñas",
+      "jobs": "Trabajos:",
+      "completed": "completados",
+      "status": "Estado:",
+      "verified": "✓ Verificado",
+      "submit": "Enviar postulación",
+      "budgetLabel": "Presupuesto:",
+      "success": {
+        "title": "¡Postulación enviada!",
+        "message": "El cliente revisará tu propuesta y te contactará si está interesado.",
+        "viewJob": "Ver trabajo"
+      },
+      "alreadyApplied": {
+        "title": "Ya postulaste",
+        "message": "Ya has enviado una postulación para este trabajo"
+      },
+      "errors": {
+        "coverLetterRequired": "Por favor escribe una carta de presentación",
+        "rateRequired": "Por favor ingresa tu tarifa propuesta",
+        "loadFailed": "No se pudo cargar la información",
+        "submitFailed": "No se pudo enviar tu postulación. Intenta nuevamente.",
+        "professionalOnly": "Solo los profesionales pueden postular a trabajos",
+        "profileRequired": "Necesitas un perfil profesional para postularte a trabajos",
+        "cannotApplyOwn": "No puedes postularte a un trabajo que tú mismo creaste",
+        "loginRequired": "Debes iniciar sesión para postularte"
+      }
+    },
+    "detail": {
+      "title": "Detalle del Trabajo",
+      "publishedBy": "Publicado por",
+      "publishedDate": "Publicado {{date}}",
+      "jobDetails": "Detalles del trabajo",
+      "startDate": "Inicia: {{date}}",
+      "recurring": " (Recurrente)",
+      "negotiable": "A negociar",
+      "from": "Desde",
+      "location": "Ubicación",
+      "locationNote": "La ubicación exacta se mostrará después de postularte",
+      "stats": {
+        "likes": "Me gusta",
+        "applications": "Postulaciones",
+        "applicationsCount_one": "{{count}} postulación",
+        "applicationsCount_other": "{{count}} postulaciones"
+      },
+      "applicationsSection": "Postulaciones ({{count}})",
+      "proposedPrice": "Propuesta: ${{price}}",
+      "viewApplication": "Ver",
+      "actions": {
+        "interested": "Me interesa",
+        "notInterested": "No me interesa",
+        "apply": "Postular a este trabajo",
+        "alreadyApplied": "Ya postulaste",
+        "contactClient": "Contactar cliente"
+      },
+      "errors": {
+        "loadFailed": "No se pudo cargar el trabajo",
+        "profileRequired": "Necesitas un perfil profesional para reaccionar",
+        "reactionFailed": "No se pudo registrar tu reacción",
+        "chatProfileRequired": "Necesitas un perfil profesional para contactar al cliente",
+        "chatFailed": "No se pudo iniciar el chat"
+      }
+    },
+    "list": {
+      "myJobs": {
+        "title": "Mis Trabajos",
+        "subtitle": "Gestiona tus publicaciones",
+        "empty": "No tienes trabajos publicados"
+      },
+      "available": {
+        "title": "Trabajos Disponibles",
+        "subtitle": "Encuentra tu próximo trabajo",
+        "empty": "No hay trabajos disponibles"
+      },
+      "searchPlaceholder": "Buscar trabajos...",
+      "filters": {
+        "all": "Todos",
+        "cleaning": "Limpieza",
+        "nanny": "Niñera",
+        "helper": "Auxiliar"
+      },
+      "createFirst": "Publicar primer trabajo"
+    },
+    "card": {
+      "negotiable": "A negociar",
+      "hourly": "/hora",
+      "daily": "/día",
+      "fixed": "fijo",
+      "recurring": "(recurrente)",
+      "timeAgo": {
+        "minutes": "hace {{count}}m",
+        "hours": "hace {{count}}h",
+        "days": "hace {{count}}d"
+      },
+      "applications_one": "{{count}} postulación",
+      "applications_other": "{{count}} postulaciones",
+      "interested": "Me interesa",
+      "apply": "Postular",
+      "applied": "Postulado"
+    }
   },
   "common": {
     "loading": "Cargando...",

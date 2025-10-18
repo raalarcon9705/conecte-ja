@@ -118,7 +118,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Badge variant="primary">{planName}</Badge>
         </View>
 
-        {isProfessional && profile?.professional_profile && (
+        {currentMode === 'professional' && isProfessional && profile?.professional_profile && (
           <>
             <Text variant="h4" weight="bold" className="mb-4">
               {t('profile.statistics')}

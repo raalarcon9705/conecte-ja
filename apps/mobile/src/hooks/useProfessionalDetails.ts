@@ -44,9 +44,8 @@ export const useProfessionalDetails = (professionalId: string) => {
 
       if (error) throw error;
 
-      console.log('data', JSON.stringify(data, null, 2));
 
-      setReviews(data as ReviewWithClientProfile[]);
+      setReviews(data as unknown as ReviewWithClientProfile[]);
     } catch (error) {
       console.error('Error fetching reviews:', error);
       setReviews([]);

@@ -1,14 +1,23 @@
-import { useMemo } from 'react';
 import { createClient } from '@conecteja/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@conecteja/types';
 
+// Create a single Supabase client instance for the entire app
+// This prevents "Multiple GoTrueClient instances" warning
+let supabaseInstance: SupabaseClient<Database> | null = null;
+
+function getSupabaseInstance(): SupabaseClient<Database> {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient();
+  }
+  return supabaseInstance;
+}
+
 /**
- * Custom hook to get a memoized Supabase client instance
- * This ensures we only create one client instance per component lifecycle
+ * Custom hook to get the singleton Supabase client instance
+ * This ensures we only create ONE client instance for the entire app
  */
 export function useSupabase(): SupabaseClient<Database> {
-  const supabase = useMemo(() => createClient(), []);
-  return supabase;
+  return getSupabaseInstance();
 }
 

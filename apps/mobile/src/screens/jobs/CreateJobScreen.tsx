@@ -15,8 +15,9 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useSupabase } from '../../hooks/useSupabase';
 import { LocationPrivacy } from '@conecteja/utils';
+import { CreateJobScreenProps } from '../../types/navigation';
 
-export default function CreateJobScreen({ navigation }: any) {
+export default function CreateJobScreen({ navigation }: CreateJobScreenProps) {
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
   const supabase = useSupabase();
@@ -43,7 +44,7 @@ export default function CreateJobScreen({ navigation }: any) {
   }, [currentMode, navigation, t]);
 
   // Mock location - in real app, use geolocation
-  const [coordinates, setCoordinates] = useState({
+  const [coordinates] = useState({
     latitude: -34.6037,
     longitude: -58.3816,
   });

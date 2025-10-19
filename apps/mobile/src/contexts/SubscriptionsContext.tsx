@@ -56,9 +56,10 @@ export const SubscriptionsProvider = ({ children }: { children: ReactNode }) => 
       if (fetchError) throw fetchError;
 
       setCurrentSubscription(data as unknown as SubscriptionWithPlan | null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching current subscription:', err);
-      setError(err.message || 'Error al cargar suscripción');
+      const message = err instanceof Error ? err.message : 'Error al cargar suscripción';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -78,9 +79,10 @@ export const SubscriptionsProvider = ({ children }: { children: ReactNode }) => 
       if (fetchError) throw fetchError;
 
       setAvailablePlans(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching subscription plans:', err);
-      setError(err.message || 'Error al cargar planes de suscripción');
+      const message = err instanceof Error ? err.message : 'Error al cargar planes de suscripción';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -145,9 +147,10 @@ export const SubscriptionsProvider = ({ children }: { children: ReactNode }) => 
       await fetchCurrentSubscription(user.id);
 
       return data as Subscription;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating subscription:', err);
-      setError(err.message || 'Error al crear suscripción');
+      const message = err instanceof Error ? err.message : 'Error al crear suscripción';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -184,9 +187,10 @@ export const SubscriptionsProvider = ({ children }: { children: ReactNode }) => 
       if (currentProfileId) {
         await fetchCurrentSubscription(currentProfileId);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error canceling subscription:', err);
-      setError(err.message || 'Error al cancelar suscripción');
+      const message = err instanceof Error ? err.message : 'Error al cancelar suscripción';
+      setError(message);
       throw err;
     }
   };
@@ -209,9 +213,10 @@ export const SubscriptionsProvider = ({ children }: { children: ReactNode }) => 
       if (currentProfileId) {
         await fetchCurrentSubscription(currentProfileId);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating subscription plan:', err);
-      setError(err.message || 'Error al actualizar plan de suscripción');
+      const message = err instanceof Error ? err.message : 'Error al actualizar plan de suscripción';
+      setError(message);
       throw err;
     }
   };
@@ -226,6 +231,7 @@ export const SubscriptionsProvider = ({ children }: { children: ReactNode }) => 
   // Load available plans on mount
   useEffect(() => {
     fetchAvailablePlans();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

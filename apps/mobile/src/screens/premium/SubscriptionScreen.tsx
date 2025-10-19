@@ -1,6 +1,6 @@
 /** @jsxImportSource nativewind */
-import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, ScrollView, ActivityIndicator, Alert as RNAlert } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, TouchableOpacity, ActivityIndicator, Alert as RNAlert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react-native';
 import {
@@ -13,8 +13,9 @@ import {
 } from '@conecteja/ui-mobile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubscriptions } from '../../contexts/SubscriptionsContext';
+import { SubscriptionScreenProps } from '../../types/navigation';
 
-export default function SubscriptionScreen({ navigation }: any) {
+export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { 
@@ -24,14 +25,13 @@ export default function SubscriptionScreen({ navigation }: any) {
     fetchCurrentSubscription,
     createSubscription,
   } = useSubscriptions();
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
       fetchCurrentSubscription(user.id);
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   if (subscriptionsLoading && availablePlans.length === 0) {
     return (
@@ -44,7 +44,17 @@ export default function SubscriptionScreen({ navigation }: any) {
   }
 
   const plans = availablePlans.map((plan) => {
-    const features = plan.features as any;
+    const features = plan.features as {
+      chat_enabled?: boolean;
+      send_images?: boolean;
+      send_location?: boolean;
+      whatsapp_button?: boolean;
+      weekly_contacts?: number;
+      featured_listing?: boolean;
+      analytics?: boolean;
+      priority_support?: boolean;
+      badge?: string;
+    };
     const isCurrent = currentSubscription?.plan_id === plan.id;
 
     return {
@@ -69,12 +79,9 @@ export default function SubscriptionScreen({ navigation }: any) {
   });
 
   const handleSubscribe = async (planId: string) => {
-    try {
-      setLoading(true);
-      
-      RNAlert.alert(
-        'Confirmar Suscripción',
-        '¿Deseas suscribirte a este plan?',
+    RNAlert.alert(
+        t('subscription.confirm.title'),
+        t('subscription.confirm.message'),
         [
           { text: 'Cancelar', style: 'cancel' },
           {
@@ -82,18 +89,16 @@ export default function SubscriptionScreen({ navigation }: any) {
             onPress: async () => {
               try {
                 await createSubscription(planId);
-                RNAlert.alert('Éxito', 'Suscripción creada exitosamente');
+                RNAlert.alert(t('subscription.success.title'), t('subscription.success.message'));
                 navigation.goBack();
-              } catch (error: any) {
-                RNAlert.alert('Error', error.message || 'No se pudo crear la suscripción');
+              } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : t('subscription.errors.createFailed');
+                RNAlert.alert(t('common.error'), message);
               }
             },
           },
         ]
       );
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (

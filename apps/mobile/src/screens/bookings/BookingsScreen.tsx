@@ -1,6 +1,6 @@
 /** @jsxImportSource nativewind */
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, ActivityIndicator } from 'react-native';
+import { ScrollView, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Calendar } from 'lucide-react-native';
 import {
@@ -8,15 +8,15 @@ import {
   Text,
   BookingCard,
   Container,
-  Spacer,
   Empty,
   Tabs,
 } from '@conecteja/ui-mobile';
 import { useBookings } from '../../contexts/BookingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCurrency } from '@conecteja/utils';
+import { BookingsScreenProps } from '../../types/navigation';
 
-export default function BookingsScreen({ navigation }: any) {
+export default function BookingsScreen({ navigation }: BookingsScreenProps) {
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
   const { bookings, loading, fetchBookings } = useBookings();
@@ -110,12 +110,12 @@ export default function BookingsScreen({ navigation }: any) {
           filteredBookings.map((booking) => {
             // Determine the name and context based on current mode
             const otherPartyName = currentMode === 'client'
-              ? booking.professional_profile?.profiles?.full_name || 'Profesional'
-              : booking.client_profile?.full_name || 'Cliente';
+              ? booking.professional_profile?.profiles?.full_name || t('common.professional')
+              : booking.client_profile?.full_name || t('common.client');
 
             const serviceName = currentMode === 'client'
               ? booking.service_name
-              : `${booking.service_name} - ${booking.client_profile?.full_name || 'Cliente'}`;
+              : `${booking.service_name} - ${booking.client_profile?.full_name || t('common.client')}`;
 
             // Format date and time
             const bookingDate = new Date(booking.booking_date);

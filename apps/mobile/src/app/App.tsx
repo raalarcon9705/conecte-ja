@@ -18,6 +18,7 @@ import { SubscriptionsProvider } from '../contexts/SubscriptionsContext';
 import { ProfileProvider } from '../contexts/ProfileContext';
 import { JobPostingsProvider } from '../contexts/JobPostingsContext';
 import { hasCompletedOnboarding } from '@conecteja/supabase';
+import type { RootStackParamList, TabParamList } from '../types/navigation';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -47,8 +48,8 @@ import CreateJobScreen from '../screens/jobs/CreateJobScreen';
 import JobDetailScreen from '../screens/jobs/JobDetailScreen';
 import JobApplyScreen from '../screens/jobs/JobApplyScreen';
 
-const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
 
 // Tabs Navigator
 function MainTabs() {

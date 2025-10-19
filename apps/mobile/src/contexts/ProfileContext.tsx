@@ -91,9 +91,10 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       };
 
       setProfile(fullProfile);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching profile:', err);
-      setError(err.message || 'Error al cargar perfil');
+      const message = err instanceof Error ? err.message : 'Error al cargar perfil';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -120,9 +121,10 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
 
       // Update local state
       setProfile((prev) => (prev ? { ...prev, ...data } : null));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating profile:', err);
-      setError(err.message || 'Error al actualizar perfil');
+      const message = err instanceof Error ? err.message : 'Error al actualizar perfil';
+      setError(message);
       throw err;
     }
   }, [supabase]);
@@ -159,9 +161,10 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
             }
           : null
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating professional profile:', err);
-      setError(err.message || 'Error al actualizar perfil profesional');
+      const message = err instanceof Error ? err.message : 'Error al actualizar perfil profesional';
+      setError(message);
       throw err;
     }
   }, [supabase, profile]);
@@ -194,9 +197,10 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       await updateProfile({ avatar_url: publicUrl });
 
       return publicUrl;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error uploading avatar:', err);
-      setError(err.message || 'Error al subir avatar');
+      const message = err instanceof Error ? err.message : 'Error al subir avatar';
+      setError(message);
       throw err;
     }
   }, [supabase, updateProfile]);
@@ -221,9 +225,10 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       if (state) updates.state = state;
 
       await updateProfile(updates);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating location:', err);
-      setError(err.message || 'Error al actualizar ubicación');
+      const message = err instanceof Error ? err.message : 'Error al actualizar ubicación';
+      setError(message);
       throw err;
     }
   }, [updateProfile]);
@@ -249,7 +254,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
         
         return { ...prev, last_seen_at: new Date().toISOString() };
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Silently fail for last seen updates
       console.error('Error updating last seen:', err);
     }

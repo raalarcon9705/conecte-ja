@@ -9,8 +9,9 @@ import { createClient } from '@conecteja/supabase';
 import { LoginSchema, loginSchema } from '@conecteja/schemas';
 import { useAuth } from '../../contexts/AuthContext';
 import { Mail, Lock } from 'lucide-react-native';
+import { LoginScreenProps } from '../../types/navigation';
 
-export default function LoginScreen({ navigation }: any) {
+export default function LoginScreen({ navigation }: LoginScreenProps) {
   const { t } = useTranslation();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);

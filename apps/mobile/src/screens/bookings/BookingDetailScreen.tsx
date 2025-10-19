@@ -1,6 +1,6 @@
 /** @jsxImportSource nativewind */
 import React, { useEffect, useState } from 'react';
-import { View, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CalendarDays, DollarSign } from 'lucide-react-native';
 import {
@@ -10,7 +10,6 @@ import {
   Card,
   Button,
   Container,
-  Spacer,
   Divider,
   Badge,
   LocationTag,
@@ -19,8 +18,9 @@ import {
 import { useBookings } from '../../contexts/BookingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCurrency } from '@conecteja/utils';
+import { BookingDetailScreenProps } from '../../types/navigation';
 
-export default function BookingDetailScreen({ navigation, route }: any) {
+export default function BookingDetailScreen({ navigation, route }: BookingDetailScreenProps) {
   const { t } = useTranslation();
   const { id } = route.params || {};
   const { currentMode } = useAuth();
@@ -31,6 +31,7 @@ export default function BookingDetailScreen({ navigation, route }: any) {
     if (id) {
       fetchBookingById(id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (loading || !currentBooking) {
@@ -51,8 +52,8 @@ export default function BookingDetailScreen({ navigation, route }: any) {
     : { profiles: booking.client_profile };
   
   const otherPartyName = currentMode === 'client'
-    ? booking.professional_profile?.profiles?.full_name || 'Profesional'
-    : booking.client_profile?.full_name || 'Cliente';
+    ? booking.professional_profile?.profiles?.full_name || t('common.professional')
+    : booking.client_profile?.full_name || t('common.client');
 
   // Format date
   const bookingDate = new Date(booking.booking_date);
@@ -75,10 +76,10 @@ export default function BookingDetailScreen({ navigation, route }: any) {
             try {
               setActionLoading(true);
               await cancelBooking(booking.id, 'Cancelado por usuario');
-              Alert.alert('Éxito', 'Reserva cancelada exitosamente');
+              Alert.alert(t('common.success'), t('bookings.detail.success.cancelled'));
               navigation.goBack();
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo cancelar la reserva');
+            } catch {
+              Alert.alert(t('common.error'), t('bookings.detail.errors.cancelFailed'));
             } finally {
               setActionLoading(false);
             }
@@ -92,9 +93,9 @@ export default function BookingDetailScreen({ navigation, route }: any) {
     try {
       setActionLoading(true);
       await confirmBooking(booking.id);
-      Alert.alert('Éxito', 'Reserva confirmada exitosamente');
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo confirmar la reserva');
+      Alert.alert(t('common.success'), t('bookings.detail.success.confirmed'));
+    } catch {
+      Alert.alert(t('common.error'), t('bookings.detail.errors.confirmFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -104,9 +105,9 @@ export default function BookingDetailScreen({ navigation, route }: any) {
     try {
       setActionLoading(true);
       await completeBooking(booking.id);
-      Alert.alert('Éxito', 'Reserva marcada como completada');
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo completar la reserva');
+      Alert.alert(t('common.success'), t('bookings.detail.success.completed'));
+    } catch {
+      Alert.alert(t('common.error'), t('bookings.detail.errors.completeFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -243,11 +244,11 @@ export default function BookingDetailScreen({ navigation, route }: any) {
               className="mb-3"
               onPress={() => {
                 navigation.navigate('ChatDetail', {
-                  conversationId: null,
+                  conversationId: undefined,
                   clientId: booking.client_profile_id,
                   professionalId: booking.professional_profile_id,
                   professionalName: otherPartyName,
-                  professionalAvatar: otherProfile?.profiles?.avatar_url,
+                  professionalAvatar: otherProfile?.profiles?.avatar_url || undefined,
                 });
               }}
             >

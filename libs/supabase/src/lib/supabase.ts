@@ -7,8 +7,6 @@ import { ExpoSecureStoreAdapter } from './storage';
  * Supports Node.js process.env, Expo Constants, and Next.js
  */
 function getEnvVar(name: string): string | undefined {
-  console.log(`[Supabase] Getting env var: ${name}`);
-  
   // For Expo apps, try expo-constants first (works reliably in both web and native)
   try {
     const Constants = require('expo-constants').default;
@@ -19,37 +17,31 @@ function getEnvVar(name: string): string | undefined {
       };
       const mappedKey = keyMap[name];
       if (mappedKey && Constants.expoConfig.extra[mappedKey]) {
-        console.log(`[Supabase] Found ${name} in expo-constants.extra.${mappedKey}`);
         return Constants.expoConfig.extra[mappedKey];
       }
     }
   } catch (error) {
-    console.log(`[Supabase] expo-constants not available:`, error);
+    console.error(`[Supabase] expo-constants not available:`, error);
   }
 
   // Try to get from process.env (Node.js, Next.js, Expo Web with Metro)
   if (typeof process !== 'undefined' && process.env) {
-    console.log(`[Supabase] Checking process.env for ${name}`);
-    
     // Try different prefixes
     const variants = [
       name,                          // Direct name
       `EXPO_PUBLIC_${name}`,         // Expo prefix
       `NEXT_PUBLIC_${name}`,         // Next.js prefix
     ];
-    
+
     for (const variant of variants) {
       const value = process.env[variant];
       if (value) {
-        console.log(`[Supabase] Found ${name} as ${variant} in process.env`);
         return value;
       }
     }
-    
-    console.log(`[Supabase] ${name} not found in process.env. Available keys:`, Object.keys(process.env).filter(k => k.includes('SUPABASE')));
+
   }
 
-  console.log(`[Supabase] ${name} not found in any source`);
   return undefined;
 }
 
@@ -72,19 +64,15 @@ export function createClient(): SupabaseClient<Database> {
     throw new Error('SUPABASE_ANON_KEY environment variable is not set');
   }
 
-  // Check if we're in a web environment
-  const isWeb = typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+  // Use the ExpoSecureStoreAdapter that handles both web and native
+  // Don't set storageKey - let Supabase use its default based on project URL
   const client = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      // Only use custom storage adapter on native mobile
-      // On web, let Supabase use the default localStorage implementation
-      ...(isWeb ? {} : { storage: ExpoSecureStoreAdapter }),
+      storage: ExpoSecureStoreAdapter,
       autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
     },
   });
-  
+
   return client;
 }
 
@@ -96,9 +84,9 @@ export function createClient(): SupabaseClient<Database> {
  */
 export function createAdminClient(): SupabaseClient<Database> {
   const supabaseUrl = getEnvVar('SUPABASE_URL');
-  const supabaseServiceRoleKey = 
-    (typeof process !== 'undefined' && process.env ? 
-      (process.env['SUPABASE_SERVICE_ROLE_KEY'] || process.env['SUPABASE_SERVICE_ROLE']) : 
+  const supabaseServiceRoleKey =
+    (typeof process !== 'undefined' && process.env ?
+      (process.env['SUPABASE_SERVICE_ROLE_KEY'] || process.env['SUPABASE_SERVICE_ROLE']) :
       undefined);
 
   if (!supabaseUrl) {

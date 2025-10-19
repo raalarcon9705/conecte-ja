@@ -15,8 +15,9 @@ import {
 } from '@conecteja/ui-mobile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../contexts/ProfileContext';
+import { EditProfileScreenProps } from '../../types/navigation';
 
-export default function EditProfileScreen({ navigation }: any) {
+export default function EditProfileScreen({ navigation }: EditProfileScreenProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { profile, loading: profileLoading, fetchProfile, updateProfile } = useProfile();
@@ -33,7 +34,8 @@ export default function EditProfileScreen({ navigation }: any) {
     if (user?.id && !profile) {
       fetchProfile(user.id);
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   useEffect(() => {
     if (profile) {
@@ -60,11 +62,12 @@ export default function EditProfileScreen({ navigation }: any) {
         state: state || null,
       });
 
-      Alert.alert(t('common.success') || 'Éxito', t('profile.edit.successMessage') || 'Perfil actualizado exitosamente');
+      Alert.alert(t('common.success'), t('profile.edit.successMessage'));
       navigation.goBack();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating profile:', error);
-      Alert.alert(t('common.error') || 'Error', error.message || t('profile.edit.errorMessage') || 'No se pudo actualizar el perfil');
+      const message = error instanceof Error ? error.message : t('profile.edit.errorMessage');
+      Alert.alert(t('common.error'), message);
     } finally {
       setLoading(false);
     }
@@ -94,7 +97,7 @@ export default function EditProfileScreen({ navigation }: any) {
 
         <View className="items-center mb-8">
           <Avatar 
-            name={name || 'Usuario'} 
+            name={name || t('common.user')} 
             size="xl"
             uri={profile?.avatar_url}
           />

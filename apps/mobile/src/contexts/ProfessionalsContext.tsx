@@ -68,8 +68,9 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
       }
 
       setProfessionals(data as unknown as Professional[] || []);
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar profesionales');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al cargar profesionales';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -110,13 +111,14 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
       if (fetchError) throw fetchError;
 
       // Filter by distance client-side (simple approximation)
-      const filtered = (data || []).filter((prof: any) => {
-        if (!prof.profiles?.latitude || !prof.profiles?.longitude) return false;
+      const filtered = (data || []).filter((prof: unknown) => {
+        const professional = prof as Professional;
+        if (!professional.profiles?.latitude || !professional.profiles?.longitude) return false;
         
         const lat1 = latitude;
         const lon1 = longitude;
-        const lat2 = prof.profiles.latitude;
-        const lon2 = prof.profiles.longitude;
+        const lat2 = professional.profiles.latitude;
+        const lon2 = professional.profiles.longitude;
         
         // Simple distance calculation (Haversine approximation)
         const R = 6371; // Earth radius in km
@@ -133,8 +135,9 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
       });
 
       setProfessionals(filtered as unknown as Professional[]);
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar profesionales cercanos');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al cargar profesionales cercanos';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -171,9 +174,10 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
       if (fetchError) throw fetchError;
 
       setProfessionals(data as unknown as Professional[] || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching professionals by category:', err);
-      setError(err.message || 'Error al cargar profesionales');
+      const message = err instanceof Error ? err.message : 'Error al cargar profesionales';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -212,19 +216,21 @@ export const ProfessionalsProvider = ({ children }: { children: ReactNode }) => 
       const professional = data as unknown as Professional;
       setCurrentProfessional(professional);
       return professional;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching professional by id:', err);
-      setError(err.message || 'Error al cargar profesional');
+      const message = err instanceof Error ? err.message : 'Error al cargar profesional';
+      setError(message);
       return null;
     } finally {
       setLoading(false);
     }
   }, [supabase]);
 
-  // Fetch professionals only once on mount
+  // Fetch professionals on mount (Auth is already initialized by the time this runs)
   useEffect(() => {
     fetchProfessionals();
-  }, [fetchProfessionals]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ProfessionalsContext.Provider

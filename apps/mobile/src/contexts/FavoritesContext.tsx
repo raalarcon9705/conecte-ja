@@ -1,10 +1,6 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
-import type { Database } from '@conecteja/types';
 import { Professional } from './ProfessionalsContext';
-
-// Type aliases from database
-type Favorite = Database['public']['Tables']['favorites']['Row'];
 
 interface FavoritesContextType {
   favorites: string[]; // Array of professional profile IDs
@@ -61,16 +57,17 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
       if (fetchError) throw fetchError;
 
-      const favoriteIds = data.map((fav: any) => fav.professional_profile_id);
+      const favoriteIds = data.map((fav: { professional_profile_id: string }) => fav.professional_profile_id);
       const professionals = data
-        .map((fav: any) => fav.professional_profiles)
+        .map((fav: { professional_profiles: Professional }) => fav.professional_profiles)
         .filter(Boolean);
 
       setFavorites(favoriteIds);
       setFavoriteProfessionals(professionals as Professional[]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching favorites:', err);
-      setError(err.message || 'Error al cargar favoritos');
+      const message = err instanceof Error ? err.message : 'Error al cargar favoritos';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -112,9 +109,10 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       if (currentClientId) {
         await fetchFavorites(currentClientId);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error adding favorite:', err);
-      setError(err.message || 'Error al agregar favorito');
+      const message = err instanceof Error ? err.message : 'Error al agregar favorito';
+      setError(message);
       throw err;
     }
   };
@@ -139,9 +137,10 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       setFavoriteProfessionals((prev) => 
         prev.filter((prof) => prof.id !== professionalProfileId)
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error removing favorite:', err);
-      setError(err.message || 'Error al eliminar favorito');
+      const message = err instanceof Error ? err.message : 'Error al eliminar favorito';
+      setError(message);
       throw err;
     }
   };

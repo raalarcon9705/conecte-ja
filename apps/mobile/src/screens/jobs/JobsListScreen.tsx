@@ -15,12 +15,14 @@ import {
 } from '@conecteja/ui-mobile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSupabase } from '../../hooks/useSupabase';
+import { JobPostingWithDetails } from '../../contexts/JobPostingsContext';
+import { JobsListScreenProps } from '../../types/navigation';
 
-export default function JobsListScreen({ navigation }: any) {
+export default function JobsListScreen({ navigation }: JobsListScreenProps) {
   const { t } = useTranslation();
-  const { user, currentMode } = useAuth();
+  const { currentMode } = useAuth();
   const supabase = useSupabase();
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<JobPostingWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -57,8 +59,8 @@ export default function JobsListScreen({ navigation }: any) {
       const { data, error } = await query;
 
       if (error) throw error;
-      setJobs(data || []);
-    } catch (error) {
+      setJobs(data as unknown as JobPostingWithDetails[] || []);
+    } catch (error: unknown) {
       console.error('Error fetching jobs:', error);
     } finally {
       setLoading(false);
@@ -115,8 +117,6 @@ export default function JobsListScreen({ navigation }: any) {
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder={t('jobs.list.searchPlaceholder')}
-          showFilter
-          onFilterPress={() => {}}
         />
 
         <Spacer size="md" />
@@ -131,21 +131,6 @@ export default function JobsListScreen({ navigation }: any) {
             label={t('jobs.list.filters.all')}
             isActive={!selectedCategory}
             onPress={() => setSelectedCategory(null)}
-          />
-          <FilterChip
-            label={t('jobs.list.filters.cleaning')}
-            isActive={false}
-            onPress={() => {}}
-          />
-          <FilterChip
-            label={t('jobs.list.filters.nanny')}
-            isActive={false}
-            onPress={() => {}}
-          />
-          <FilterChip
-            label={t('jobs.list.filters.helper')}
-            isActive={false}
-            onPress={() => {}}
           />
         </ScrollView>
       </Container>
@@ -181,19 +166,19 @@ export default function JobsListScreen({ navigation }: any) {
               id={job.id}
               title={job.title}
               description={job.description}
-              clientName={job.profiles?.full_name || 'Usuario'}
-              clientAvatar={job.profiles?.avatar_url}
-              category={job.categories?.name || 'General'}
-              location={job.location_city}
-              budgetMin={job.budget_min}
-              budgetMax={job.budget_max}
-              budgetType={job.budget_type}
-              startDate={job.start_date}
-              isRecurring={job.is_recurring}
+              clientName={job.profiles?.full_name || t('common.user')}
+              clientAvatar={job.profiles?.avatar_url || ''}
+              category={job.categories?.name || t('common.general')}
+              location={job.location_city || ''}
+              budgetMin={job.budget_min || 0}
+              budgetMax={job.budget_max || 0}
+              budgetType={job.budget_type as 'fixed' | 'hourly' | 'daily' | 'negotiable' | undefined}
+              startDate={job.start_date || ''}
+              isRecurring={job.is_recurring || false}
               likesCount={job.likes_count || 0}
               dislikesCount={job.dislikes_count || 0}
               applicationsCount={job.applications_count || 0}
-              createdAt={job.created_at}
+              createdAt={job.created_at || ''}
               onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
               onLike={() => handleLike(job.id)}
               onApply={() => handleApply(job.id)}

@@ -5,8 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { Search, Star, MessageCircle, Calendar } from 'lucide-react-native';
 import { Screen, Text, Button } from '@conecteja/ui-mobile';
 import { setOnboardingCompleted } from '@conecteja/supabase';
+import { OnboardingScreenProps } from '../../types/navigation';
 
-export default function OnboardingScreen({ navigation }: any) {
+export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   const { t } = useTranslation();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -117,7 +118,7 @@ export default function OnboardingScreen({ navigation }: any) {
             disabled={isCompleting}
           >
             {isCompleting 
-              ? t('common.loading') || 'Loading...'
+              ? t('common.loading')
               : currentSlide === slides.length - 1 
                 ? t('auth.onboarding.start') 
                 : t('auth.onboarding.next')

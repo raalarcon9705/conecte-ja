@@ -7,8 +7,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RegisterSchema, registerSchema } from '@conecteja/schemas';
 import { useAuth } from '../../contexts/AuthContext';
+import { RegisterScreenProps } from '../../types/navigation';
 
-export default function RegisterScreen({ navigation }: any) {
+export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   const { t } = useTranslation();
   const { register } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -38,8 +39,8 @@ export default function RegisterScreen({ navigation }: any) {
       await register(formData);
       // Navigate to success screen with email
       navigation.navigate('RegistrationSuccess', { email: formData.email });
-    } catch (error: any) {
-      setApiError(error.message || t('auth.register.errors.generic'));
+    } catch (error: unknown) {
+      setApiError(error instanceof Error ? error.message : t('auth.register.errors.generic'));
     } finally {
       setLoading(false);
     }

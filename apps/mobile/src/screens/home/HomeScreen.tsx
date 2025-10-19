@@ -23,6 +23,7 @@ import { useNotifications } from '../../contexts/NotificationsContext';
 import { useProfile } from '../../contexts/ProfileContext';
 import { useBookings } from '../../contexts/BookingsContext';
 import { useJobPostings } from '../../contexts/JobPostingsContext';
+import { HomeScreenProps } from '../../types/navigation';
 
 // Icon mapping by category slug
 const getCategoryIconBySlug = (slug: string, size: number, color: string) => {
@@ -50,13 +51,6 @@ const getCategoryIconBySlug = (slug: string, size: number, color: string) => {
   return iconMap[slug] || <Package size={size} color={color} />;
 };
 
-interface HomeScreenProps {
-  navigation: {
-    navigate: (screen: string, params?: any) => void;
-    goBack: () => void;
-  };
-}
-
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
@@ -72,8 +66,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { favorites, fetchFavorites, toggleFavorite } = useFavorites();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  console.log("HomeScreen initialized");
   
   // Professional mode only - Job postings
   const { 
@@ -104,7 +96,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // Fetch featured jobs for professionals only
   useEffect(() => {
     if (user?.id && currentMode === 'professional' && profile?.professional_profile?.category_id) {
-      console.log('Fetching featured jobs for category:', profile.professional_profile.category_id);
       fetchFeaturedJobs(profile.professional_profile.category_id, 3);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,7 +138,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
   };
 
-  const userName = profile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || 'Usuario';
+  const userName = profile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || t('common.user');
 
   // Render different content based on current mode
   if (currentMode === 'professional') {
@@ -224,9 +215,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   id={job.id}
                   title={job.title}
                   description={job.description}
-                  clientName={job.profiles?.full_name || 'Usuario'}
+                  clientName={job.profiles?.full_name || t('common.user')}
                   clientAvatar={job.profiles?.avatar_url || undefined}
-                  category={job.categories?.name || 'General'}
+                  category={job.categories?.name || t('common.general')}
                   location={job.location_city || undefined}
                   budgetMin={job.budget_min || undefined}
                   budgetMax={job.budget_max || undefined}
@@ -415,8 +406,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 <ProfessionalCard
                   key={professional.id}
                   id={professional.id!}
-                  name={professional.profiles?.full_name || 'Sin nombre'}
-                  category={professional.categories?.name || 'Sin categoría'}
+                  name={professional.profiles?.full_name || t('common.noName')}
+                  category={professional.categories?.name || t('common.noCategory')}
                   avatar={professional.profiles?.avatar_url || undefined}
                   rating={Number(professional.average_rating) || 0}
                   reviewCount={professional.total_reviews || 0}

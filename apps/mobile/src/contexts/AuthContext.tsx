@@ -1,4 +1,6 @@
+/** @jsxImportSource nativewind */
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { User } from '@supabase/supabase-js';
 import { RegisterSchema } from '@conecteja/schemas';
 import { useSupabase } from '../hooks/useSupabase';
@@ -12,6 +14,7 @@ import {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isInitialized: boolean;
   currentMode: AccountMode;
   hasProfessionalAccount: boolean;
   canSwitchMode: boolean;
@@ -30,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [currentMode, setCurrentMode] = useState<AccountMode>('client');
   const [hasProfessionalAccount, setHasProfessionalAccount] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const supabase = useSupabase();
 
   // Check if user has a professional account
@@ -66,45 +70,89 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const fetchSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       
       if (currentUser) {
-        // Load saved mode and check professional account
-        const mode = await getCurrentAccountMode();
-        setCurrentMode(mode);
-        
-        // Check professional account
-        const { data, error } = await supabase
-          .from('professional_profiles')
-          .select('id')
-          .eq('profile_id', currentUser.id)
-          .single();
-        
-        const hasProfessional = !error && !!data;
-        setHasProfessionalAccount(hasProfessional);
+        try {
+          // Load saved mode and check professional account
+          const mode = await getCurrentAccountMode();
+          setCurrentMode(mode);
+          
+          // Add timeout to detect hanging queries
+          const queryPromise = supabase
+            .from('professional_profiles')
+            .select('id')
+            .eq('profile_id', currentUser.id)
+            .single();
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+          );
+          
+          let data: unknown;
+          let error: unknown;
+          try {
+            const result = await Promise.race([queryPromise, timeoutPromise]);
+            const queryResult = result as { data: unknown; error: unknown };
+            data = queryResult.data;
+            error = queryResult.error;
+          } catch (timeoutError) {
+            console.error('[AuthContext] ⏱️ Query timed out:', timeoutError);
+            error = timeoutError;
+          }
+
+          const hasProfessional = !error && !!data;
+          setHasProfessionalAccount(hasProfessional);
+        } catch (error) {
+          console.error('[AuthContext] ❌ Error in fetchSession setup:', error);
+        }
       }
+      
+      // Mark as initialized after first session check
+      setIsInitialized(true);
     };
 
     fetchSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       
       if (currentUser) {
-        const mode = await getCurrentAccountMode();
-        setCurrentMode(mode);
-        
-        // Check professional account
-        const { data, error } = await supabase
-          .from('professional_profiles')
-          .select('id')
-          .eq('profile_id', currentUser.id)
-          .single();
-        
-        const hasProfessional = !error && !!data;
-        setHasProfessionalAccount(hasProfessional);
+        try {
+          const mode = await getCurrentAccountMode();
+          setCurrentMode(mode);
+          
+          // Add timeout to detect hanging queries
+          const queryPromise = supabase
+            .from('professional_profiles')
+            .select('id')
+            .eq('profile_id', currentUser.id)
+            .single();
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Query timeout after 1 second')), 1000)
+          );
+          
+          let data: unknown;
+          let error: unknown;
+          try {
+            const result = await Promise.race([queryPromise, timeoutPromise]);
+            const queryResult = result as { data: unknown; error: unknown };
+            data = queryResult.data;
+            error = queryResult.error;
+          } catch (timeoutError) {
+            error = timeoutError;
+          }
+          
+          
+          const hasProfessional = !error && !!data;
+          setHasProfessionalAccount(hasProfessional);
+        } catch (error) {
+          console.error('[AuthContext] ❌ Error during account setup:', error);
+        }
       } else {
         setCurrentMode('client');
         setHasProfessionalAccount(false);
@@ -184,6 +232,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         isAuthenticated: !!user,
+        isInitialized,
         currentMode,
         hasProfessionalAccount,
         canSwitchMode,
@@ -196,7 +245,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         refreshAccountStatus,
       }}
     >
-      {children}
+      {/* Show loading screen while initializing, then render children */}
+      {isInitialized ? (
+        children
+      ) : (
+        <View className="flex-1 items-center justify-center bg-white">
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </View>
+      )}
     </AuthContext.Provider>
   );
 };

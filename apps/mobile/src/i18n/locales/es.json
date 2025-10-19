@@ -220,6 +220,16 @@
         "reschedule": "Reagendar",
         "cancel": "Cancelar Reserva",
         "review": "Dejar Reseña"
+      },
+      "success": {
+        "cancelled": "Reserva cancelada exitosamente",
+        "confirmed": "Reserva confirmada exitosamente",
+        "completed": "Reserva marcada como completada"
+      },
+      "errors": {
+        "cancelFailed": "No se pudo cancelar la reserva",
+        "confirmFailed": "No se pudo confirmar la reserva",
+        "completeFailed": "No se pudo completar la reserva"
       }
     }
   },
@@ -272,7 +282,9 @@
       "bio": "Biografía",
       "bioPlaceholder": "Cuéntanos sobre ti...",
       "saveButton": "Guardar Cambios",
-      "cancelButton": "Cancelar"
+      "cancelButton": "Cancelar",
+      "successMessage": "Perfil actualizado exitosamente",
+      "errorMessage": "No se pudo actualizar el perfil"
     }
   },
   "settings": {
@@ -330,6 +342,17 @@
     "alert": "Elige el plan que mejor se adapte a tus necesidades. Cancela cuando quieras.",
     "subtitle": "Para Profesionales",
     "description": "Aumenta tu visibilidad y consigue más clientes",
+    "confirm": {
+      "title": "Confirmar Suscripción",
+      "message": "¿Deseas suscribirte a este plan?"
+    },
+    "success": {
+      "title": "Éxito",
+      "message": "Suscripción creada exitosamente"
+    },
+    "errors": {
+      "createFailed": "No se pudo crear la suscripción"
+    },
     "plans": {
       "free": {
         "name": "Gratuito",
@@ -544,6 +567,12 @@
     "success": "Éxito",
     "from": "Desde",
     "hour": "hora",
-    "perHour": "/hora"
+    "perHour": "/hora",
+    "user": "Usuario",
+    "professional": "Profesional",
+    "client": "Cliente",
+    "general": "General",
+    "noName": "Sin nombre",
+    "noCategory": "Sin categoría"
   }
 }

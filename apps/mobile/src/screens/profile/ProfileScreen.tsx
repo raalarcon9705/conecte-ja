@@ -30,8 +30,9 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../contexts/ProfileContext';
 import { useSubscriptions } from '../../contexts/SubscriptionsContext';
+import { ProfileScreenProps } from '../../types/navigation';
 
-export default function ProfileScreen({ navigation }: any) {
+export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const { t } = useTranslation();
   const { user, logout, currentMode, hasProfessionalAccount } = useAuth();
   const { profile, loading: profileLoading, fetchProfile } = useProfile();
@@ -43,7 +44,8 @@ export default function ProfileScreen({ navigation }: any) {
       fetchProfile(user.id);
       fetchCurrentSubscription(user.id);
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const isProfessional = hasProfessionalAccount;
 
@@ -55,8 +57,8 @@ export default function ProfileScreen({ navigation }: any) {
     } catch (error) {
       console.error('Logout error in ProfileScreen:', error);
       Alert.alert(
-        t('settings.logout.error.title') || 'Error',
-        t('settings.logout.error.message') || 'Failed to logout. Please try again.',
+        t('settings.logout.error.title'),
+        t('settings.logout.error.message'),
         [{ text: 'OK' }]
       );
     } finally {
@@ -70,7 +72,7 @@ export default function ProfileScreen({ navigation }: any) {
     { id: 'favorites', icon: Heart, label: t('profile.menu.favorites'), screen: 'Favorites' },
     { id: 'settings', icon: Settings, label: t('profile.menu.settings'), screen: 'Settings' },
     { id: 'help', icon: HelpCircle, label: t('profile.menu.help'), screen: 'Help' },
-    { id: 'logout', icon: LogOut, label: isLoggingOut ? (t('settings.logout.processing') || 'Logging out...') : t('profile.menu.logout'), screen: null },
+    { id: 'logout', icon: LogOut, label: isLoggingOut ? t('settings.logout.processing') : t('profile.menu.logout'), screen: null },
   ];
 
   if (profileLoading && !profile) {
@@ -83,8 +85,8 @@ export default function ProfileScreen({ navigation }: any) {
     );
   }
 
-  const userName = profile?.full_name || user?.user_metadata?.full_name || 'Usuario';
-  const userEmail = user?.email || 'email@example.com';
+  const userName = profile?.full_name || user?.user_metadata?.full_name || t('common.user');
+  const userEmail = user?.email || '';
   const avatarUrl = profile?.avatar_url;
   const isVerified = profile?.is_verified || false;
 

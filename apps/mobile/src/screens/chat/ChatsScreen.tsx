@@ -1,6 +1,6 @@
 /** @jsxImportSource nativewind */
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { MessageCircle } from 'lucide-react-native';
 import {
@@ -15,10 +15,7 @@ import {
 } from '@conecteja/ui-mobile';
 import { useChats } from '../../contexts/ChatsContext';
 import { useAuth } from '../../contexts/AuthContext';
-
-interface ChatsScreenProps {
-  navigation: any;
-}
+import { ChatsScreenProps } from '../../types/navigation';
 
 export default function ChatsScreen({ navigation }: ChatsScreenProps) {
   const { t } = useTranslation();
@@ -26,30 +23,15 @@ export default function ChatsScreen({ navigation }: ChatsScreenProps) {
   const { conversations, loading, fetchConversations } = useChats();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const handleRefresh = async () => {
     if (user?.id) {
-      console.log('Fetching conversations for user:', user.id);
-      fetchConversations(user.id);
+      setRefreshing(true);
+      await fetchConversations(user.id);
+      setRefreshing(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]); // Removed currentMode - show all conversations
-
-  // Debug: log conversations
-  useEffect(() => {
-    console.log('Conversations state:', {
-      total: conversations.length,
-      currentMode,
-      userId: user?.id,
-      conversations: conversations.map(c => ({
-        id: c.id,
-        client_id: c.client_profile_id,
-        prof_id: c.professional_profile_id,
-        client_name: c.client_profile?.full_name,
-        prof_name: c.professional_profile?.full_name,
-      }))
-    });
-  }, [conversations, currentMode, user?.id]);
+  };
 
   const filteredConversations = conversations
     .filter((conv) => {
@@ -59,7 +41,6 @@ export default function ChatsScreen({ navigation }: ChatsScreenProps) {
         user?.id === conv.professional_profile_id;
       
       if (!isParticipant) {
-        console.log('Conversation filtered out - not a participant:', conv.id);
         return false;
       }
 
@@ -73,7 +54,6 @@ export default function ChatsScreen({ navigation }: ChatsScreenProps) {
       
       // Check if profiles are loaded
       if (!otherProfile) {
-        console.log('Conversation filtered out - missing profile:', conv.id);
         return false;
       }
       
@@ -169,7 +149,17 @@ export default function ChatsScreen({ navigation }: ChatsScreenProps) {
           />
         </View>
       ) : (
-        <ScrollView className="flex-1">
+        <ScrollView 
+          className="flex-1"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#3B82F6"
+              colors={['#3B82F6']}
+            />
+          }
+        >
           {filteredConversations.map((conversation) => {
             const otherProfile = user?.id === conversation.client_profile_id
               ? conversation.professional_profile
@@ -183,13 +173,56 @@ export default function ChatsScreen({ navigation }: ChatsScreenProps) {
               ? new Date().getTime() - new Date(otherProfile.last_seen_at).getTime() < 5 * 60 * 1000
               : false;
 
-            // Format timestamp
-            const timestamp = conversation.last_message_at
-              ? new Date(conversation.last_message_at).toLocaleDateString('es', {
-                  day: 'numeric',
-                  month: 'short',
-                })
-              : '';
+            // Format timestamp with time
+            const formatTimestamp = (dateString: string | null) => {
+              if (!dateString) return '';
+              
+              const messageDate = new Date(dateString);
+              const now = new Date();
+              const diffInMs = now.getTime() - messageDate.getTime();
+              const diffInMinutes = Math.floor(diffInMs / 60000);
+              const diffInHours = Math.floor(diffInMs / 3600000);
+              const diffInDays = Math.floor(diffInMs / 86400000);
+
+              // Less than 1 minute ago
+              if (diffInMinutes < 1) {
+                return 'Ahora';
+              }
+              
+              // Less than 1 hour ago
+              if (diffInMinutes < 60) {
+                return `Hace ${diffInMinutes} min`;
+              }
+              
+              // Less than 24 hours ago - show time
+              if (diffInHours < 24) {
+                return messageDate.toLocaleTimeString('es', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                });
+              }
+              
+              // Yesterday
+              const isYesterday = diffInDays === 1;
+              if (isYesterday) {
+                return 'Ayer';
+              }
+              
+              // Less than 7 days ago - show day of week
+              if (diffInDays < 7) {
+                return messageDate.toLocaleDateString('es', {
+                  weekday: 'short',
+                });
+              }
+              
+              // More than 7 days - show date
+              return messageDate.toLocaleDateString('es', {
+                day: 'numeric',
+                month: 'short',
+              });
+            };
+
+            const timestamp = formatTimestamp(conversation.last_message_at);
 
             return (
               <ConversationCard

@@ -1,5 +1,5 @@
 /** @jsxImportSource nativewind */
-import React, { useState } from 'react';
+import React from 'react';
 import { View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react-native';
@@ -22,12 +22,12 @@ import {
 import { formatCurrency } from '@conecteja/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfessionalDetails } from '../../hooks';
+import { ProfessionalDetailScreenProps } from '../../types/navigation';
 
-export default function ProfessionalDetailScreen({ navigation, route }: any) {
+export default function ProfessionalDetailScreen({ navigation, route }: ProfessionalDetailScreenProps) {
   const { t } = useTranslation();
   const { id } = route.params;
   const { user, currentMode } = useAuth();
-  const [creatingChat, setCreatingChat] = useState(false);
 
   // Redirect professionals to home - professional details are only for clients
   React.useEffect(() => {
@@ -78,7 +78,7 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
       clientId: user.id,
       professionalId: professional.profile_id,
       professionalName: professional.profiles?.full_name,
-      professionalAvatar: professional.profiles?.avatar_url,
+      professionalAvatar: professional.profiles?.avatar_url || undefined,
     });
   };
 
@@ -104,7 +104,7 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
               <Text variant="h3" weight="bold" className="mr-2">
                 {professional.profiles?.full_name || t('professional.defaults.name')}
               </Text>
-              <VerificationBadge isVerified={professional.is_verified} />
+              <VerificationBadge isVerified={professional.is_verified || false} />
             </View>
 
             <Text variant="body" color="muted" className="mb-2">
@@ -162,18 +162,21 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
           {activeTab === 'services' && (
             <View>
               {services.length > 0 ? (
-                services.map((service: any, index: number) => (
-                  <ServiceCard
-                    key={index}
-                    id={String(index)}
-                    name={service.name || t('professional.defaults.service')}
-                    description={service.description || ''}
-                    price={service.price ? formatCurrency(service.price) : ''}
-                    duration={service.duration_minutes ? `${service.duration_minutes} min` : ''}
-                    isSelected={selectedService === String(index)}
-                    onPress={() => setSelectedService(String(index))}
-                  />
-                ))
+                services.map((service: unknown, index: number) => {
+              const svc = service as { name?: string; description?: string; price?: number; duration_minutes?: number };
+              return (
+                <ServiceCard
+                  key={index}
+                  id={String(index)}
+                  name={svc.name || t('professional.defaults.service')}
+                  description={svc.description || ''}
+                  price={svc.price ? formatCurrency(svc.price) : ''}
+                  duration={svc.duration_minutes ? `${svc.duration_minutes} min` : ''}
+                  isSelected={selectedService === String(index)}
+                  onPress={() => setSelectedService(String(index))}
+                />
+              );
+            })
               ) : (
                 <Text variant="body" color="muted" className="text-center py-8">
                   {t('professional.empty.services')}
@@ -230,12 +233,15 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
                   <Text variant="body" weight="medium" className="mb-3">
                     {t('professional.gallery')}
                   </Text>
-                  <ImageGallery images={galleryImages.map((item: any) => ({
-                    id: item.id,
-                    uri: item.image_url,
-                    title: item.title,
-                    description: item.description,
-                  }))} />
+                  <ImageGallery images={galleryImages.map((item: unknown) => {
+                    const img = item as { id: string; image_url: string; title?: string; description?: string };
+                    return {
+                      id: img.id,
+                      uri: img.image_url,
+                      title: img.title,
+                      description: img.description,
+                    };
+                  })} />
                 </>
               ) : null}
             </View>
@@ -245,11 +251,9 @@ export default function ProfessionalDetailScreen({ navigation, route }: any) {
 
       <View className="bg-white border-t border-gray-200 px-4 py-3">
         <View className="flex-row gap-2">
-          <Button
+            <Button
             variant="outline"
             onPress={handleStartChat}
-            loading={creatingChat}
-            disabled={creatingChat}
             className="flex-1"
           >
             {t('professional.buttons.chat')}

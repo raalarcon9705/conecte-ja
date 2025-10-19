@@ -4,10 +4,11 @@ import { View } from 'react-native';
 import { Mail } from 'lucide-react-native';
 import { Screen, Text, Button, Spacer } from '@conecteja/ui-mobile';
 import { useTranslation } from 'react-i18next';
+import { RegistrationSuccessScreenNavigationProp, RegistrationSuccessScreenRouteProp } from '../../types/navigation';
 
 interface RegistrationSuccessScreenProps {
-  navigation: any;
-  route: any;
+  navigation: RegistrationSuccessScreenNavigationProp;
+  route: RegistrationSuccessScreenRouteProp;
 }
 
 export default function RegistrationSuccessScreen({ navigation, route }: RegistrationSuccessScreenProps) {

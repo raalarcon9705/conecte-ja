@@ -17,6 +17,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.65.0(react@19.1.0))
+      '@react-native-async-storage/async-storage':
+        specifier: ^2.2.0
+        version: 2.2.0(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))
       '@react-navigation/bottom-tabs':
         specifier: ^7.4.8
         version: 7.4.8(@react-navigation/native@7.1.18(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-safe-area-context@5.4.0(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-screens@4.16.0(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -50,6 +53,9 @@ importers:
       expo-splash-screen:
         specifier: ~31.0.10
         version: 31.0.10(expo@54.0.13)
+      expo-sqlite:
+        specifier: ^16.0.8
+        version: 16.0.8(expo@54.0.13)(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       expo-status-bar:
         specifier: ~3.0.8
         version: 3.0.8(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -104,6 +110,9 @@ importers:
       react-native-web:
         specifier: ~0.21.0
         version: 0.21.1(encoding@0.1.13)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react-native-webview:
+        specifier: ^13.16.0
+        version: 13.16.0(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-query:
         specifier: ^3.39.3
         version: 3.39.3(react-dom@19.1.0(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -2576,6 +2585,11 @@ packages:
     resolution: {integrity: sha512-QNqXyfVS2wm9hweSYD2O7F0G06uurj9kZ96TRQE5Y9hU7+tgdZwIkbAKc5Ocy1HxEY2kuDQa6cQ1WRs/O5LFKA==}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
 
+  '@react-native-async-storage/async-storage@2.2.0':
+    resolution: {integrity: sha512-gvRvjR5JAaUZF8tv2Kcq/Gbt3JHwbKFYfmb445rhOj6NUMx3qPLixmDx5pZAyb9at1bYvJ4/eTUipU5aki45xw==}
+    peerDependencies:
+      react-native: ^0.0.0-0 || >=0.65 <1.0
+
   '@react-native-community/cli-clean@18.0.0':
     resolution: {integrity: sha512-+k64EnJaMI5U8iNDF9AftHBJW+pO/isAhncEXuKRc6IjRtIh6yoaUIIf5+C98fgjfux7CNRZAMQIkPbZodv2Gw==}
 
@@ -4072,6 +4086,9 @@ packages:
   available-typed-arrays@1.0.7:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
+
+  await-lock@2.2.2:
+    resolution: {integrity: sha512-aDczADvlvTGajTDjcjpJMqRkOF6Qdz3YbPZm/PyW6tKPkx2hlYBzxMhEywM/tU72HrVZjgl5VCdRuMlA7pZ8Gw==}
 
   aws-sign2@0.7.0:
     resolution: {integrity: sha512-08kcGqnYf/YmjoRhfxyu+CLxBjUtHLXLXX/vUfx9l2LYzG3c1m61nrpyFUZI6zeS+Li/wWMMidD9KgrqtGq3mA==}
@@ -5686,6 +5703,13 @@ packages:
     resolution: {integrity: sha512-i6g9IK798mae4yvflstQ1HkgahIJ6exzTCTw4vEdxV0J2SwiW3Tj+CwRjf0te7Zsb+7dDQhBTmGZwdv00VER2A==}
     peerDependencies:
       expo: '*'
+
+  expo-sqlite@16.0.8:
+    resolution: {integrity: sha512-xw776gFgH4ZM5oGs0spSLNmkHO/kJ/EuRXGzE4/22yII9EmG84vm7aM/M2aEb8taBTqwhSGYUpkwkRT5YFFmsg==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
 
   expo-status-bar@3.0.8:
     resolution: {integrity: sha512-L248XKPhum7tvREoS1VfE0H6dPCaGtoUWzRsUv7hGKdiB4cus33Rc0sxkWkoQ77wE8stlnUlL5lvmT0oqZ3ZBw==}
@@ -7439,6 +7463,10 @@ packages:
 
   merge-descriptors@1.0.3:
     resolution: {integrity: sha512-gaNvAS7TZ897/rVaZ0nMtAyxNyi/pdbjbAwUpFQpN70GqnVfOiXpeUUMKRBmzXaSQ8DdTX4/0ms62r2K+hE6mQ==}
+
+  merge-options@3.0.4:
+    resolution: {integrity: sha512-2Sug1+knBjkaMsMgf1ctR1Ujx+Ayku4EdJN4Z+C2+JzoeF7A3OZ9KM2GY0CpQS51NR61LTurMJrRKPhSs3ZRTQ==}
+    engines: {node: '>=10'}
 
   merge-stream@2.0.0:
     resolution: {integrity: sha512-abv/qOcuPfk3URPfDzmZU1LKmuw8kT+0nIHvKrKgFrwifol/doWcdA4ZqsWQ8ENrFKkd67Mfpo/LovbIUsbt3w==}
@@ -14111,6 +14139,11 @@ snapshots:
 
   '@pkgr/core@0.2.9': {}
 
+  '@react-native-async-storage/async-storage@2.2.0(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))':
+    dependencies:
+      merge-options: 3.0.4
+      react-native: 0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0)
+
   '@react-native-community/cli-clean@18.0.0':
     dependencies:
       '@react-native-community/cli-tools': 18.0.0
@@ -15871,6 +15904,8 @@ snapshots:
   available-typed-arrays@1.0.7:
     dependencies:
       possible-typed-array-names: 1.1.0
+
+  await-lock@2.2.2: {}
 
   aws-sign2@0.7.0: {}
 
@@ -17886,6 +17921,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  expo-sqlite@16.0.8(expo@54.0.13)(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+    dependencies:
+      await-lock: 2.2.2
+      expo: 54.0.13(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(react-native-webview@13.16.0(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
+      react-native: 0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0)
+
   expo-status-bar@3.0.8(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
       react: 19.1.0
@@ -18915,8 +18957,7 @@ snapshots:
 
   is-plain-obj@1.1.0: {}
 
-  is-plain-obj@2.1.0:
-    optional: true
+  is-plain-obj@2.1.0: {}
 
   is-plain-obj@3.0.0: {}
 
@@ -20099,6 +20140,10 @@ snapshots:
   memoize-one@6.0.0: {}
 
   merge-descriptors@1.0.3: {}
+
+  merge-options@3.0.4:
+    dependencies:
+      is-plain-obj: 2.1.0
 
   merge-stream@2.0.0: {}
 
@@ -21983,7 +22028,6 @@ snapshots:
       invariant: 2.2.4
       react: 19.1.0
       react-native: 0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0)
-    optional: true
 
   react-native-worklets-core@1.6.2(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@18.0.0(typescript@5.9.3))(@react-native/metro-config@0.81.4(@babel/core@7.28.4))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:

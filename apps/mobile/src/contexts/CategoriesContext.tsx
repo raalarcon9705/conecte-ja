@@ -24,35 +24,29 @@ export const CategoriesProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
 
-      
-      const query = supabase
+      const { data, error: fetchError } = await supabase
         .from('categories')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
-      
-      const result = await query;
-      
-      const { data, error: fetchError } = result;
 
-      if (fetchError) {
-        console.error('[CategoriesContext] Supabase error:', fetchError);
-        throw fetchError;
-      }
+      if (fetchError) throw fetchError;
 
       setCategories(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[CategoriesContext] Error fetching categories:', err);
-      setError(err.message || 'Error al cargar categorías');
+      const message = err instanceof Error ? err.message : 'Error al cargar categorías';
+      setError(message);
     } finally {
       setLoading(false);
     }
   }, [supabase]);
 
-  // Fetch categories only once on mount
+  // Fetch categories on mount (Auth is already initialized by the time this runs)
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <CategoriesContext.Provider

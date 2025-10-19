@@ -15,15 +15,17 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useSupabase } from '../../hooks/useSupabase';
 import { formatCurrency } from '@conecteja/utils';
+import { JobApplyScreenProps } from '../../types/navigation';
+import { JobPostingWithDetails } from '../../contexts';
 
-export default function JobApplyScreen({ route, navigation }: any) {
+export default function JobApplyScreen({ route, navigation }: JobApplyScreenProps) {
   const { jobId } = route.params;
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
   const supabase = useSupabase();
 
-  const [job, setJob] = useState<any>(null);
-  const [professionalProfile, setProfessionalProfile] = useState<any>(null);
+  const [job, setJob] = useState<JobPostingWithDetails | null>(null);
+  const [professionalProfile, setProfessionalProfile] = useState<unknown>(null);
   const [coverLetter, setCoverLetter] = useState('');
   const [proposedPrice, setProposedPrice] = useState('');
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export default function JobApplyScreen({ route, navigation }: any) {
       // Fetch job details
       const { data: jobData, error: jobError } = await supabase
         .from('job_postings')
-        .select('*, profiles!job_postings_client_profile_id_fkey(full_name)')
+        .select('*, profiles!job_postings_client_profile_id_fkey(full_name), categories(name)')
         .eq('id', jobId)
         .single();
 
@@ -70,7 +72,7 @@ export default function JobApplyScreen({ route, navigation }: any) {
         return;
       }
 
-      setJob(jobData);
+      setJob(jobData as unknown as JobPostingWithDetails);
 
       // Fetch professional profile
       if (!user?.id) {
@@ -132,13 +134,13 @@ export default function JobApplyScreen({ route, navigation }: any) {
 
       const applicationData = {
         job_posting_id: jobId,
-        professional_profile_id: professionalProfile.id,
+        professional_profile_id: (professionalProfile as { id: string }).id,
         cover_letter: coverLetter.trim(),
         proposed_price: parseFloat(proposedPrice),
         status: 'pending',
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('job_applications')
         .insert([applicationData])
         .select()
@@ -274,7 +276,7 @@ export default function JobApplyScreen({ route, navigation }: any) {
                   {t('jobs.apply.rating')}
                 </Text>
                 <Text variant="body" weight="medium">
-                  ⭐ {professionalProfile.average_rating?.toFixed(1) || 'N/A'} ({professionalProfile.total_reviews || 0} {t('jobs.apply.reviews')})
+                  {(professionalProfile as { average_rating?: number }).average_rating?.toFixed(1) || 'N/A'} ({(professionalProfile as { total_reviews?: number }).total_reviews || 0} {t('jobs.apply.reviews')})
                 </Text>
               </View>
               <View className="flex-row">
@@ -282,10 +284,10 @@ export default function JobApplyScreen({ route, navigation }: any) {
                   {t('jobs.apply.jobs')}
                 </Text>
                 <Text variant="body" weight="medium">
-                  {professionalProfile.completed_bookings || 0} {t('jobs.apply.completed')}
+                  {(professionalProfile as { completed_bookings?: number }).completed_bookings || 0} {t('jobs.apply.completed')}
                 </Text>
               </View>
-              {professionalProfile.is_verified && (
+              {(professionalProfile as { is_verified?: boolean }).is_verified && (
                 <View className="flex-row items-center">
                   <Text variant="body" color="muted" className="w-24">
                     {t('jobs.apply.status')}

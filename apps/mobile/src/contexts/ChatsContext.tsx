@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
+import { useAuth } from './AuthContext';
 import type { Database } from '@conecteja/types';
 
 // Type aliases from database
@@ -22,11 +23,13 @@ interface ChatsContextType {
   messages: MessageWithSender[];
   loading: boolean;
   error: string | null;
+  totalUnreadCount: number;
   fetchConversations: (profileId: string) => Promise<void>;
   fetchConversationById: (conversationId: string) => Promise<void>;
   fetchMessages: (conversationId: string) => Promise<void>;
   sendMessage: (conversationId: string | null, content: string, messageType?: string, pendingConversation?: { clientId: string; professionalId: string }) => Promise<string | null>;
   markMessageAsRead: (messageId: string) => Promise<void>;
+  markConversationMessagesAsRead: (conversationId: string) => Promise<void>;
   createOrGetConversation: (clientId: string, professionalId: string) => Promise<string | null>;
   setPendingConversation: (clientId: string, professionalId: string, professionalName?: string, professionalAvatar?: string) => void;
 }
@@ -39,6 +42,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const [, setPendingConversationData] = useState<{
     clientId: string;
     professionalId: string;
@@ -46,6 +50,38 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     professionalAvatar?: string;
   } | null>(null);
   const supabase = useSupabase();
+  const { user } = useAuth();
+
+  // Load conversations automatically when user authenticates
+  // (Auth is already initialized by the time this runs)
+  useEffect(() => {
+    if (user?.id) {
+      fetchConversations(user.id);
+    } else {
+      // Clear conversations when user logs out
+      setConversations([]);
+      setCurrentConversation(null);
+      setMessages([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Calculate total unread count whenever conversations change
+  useEffect(() => {
+    if (!user?.id) {
+      setTotalUnreadCount(0);
+      return;
+    }
+
+    const total = conversations.reduce((acc, conv) => {
+      const unread = user.id === conv.client_profile_id
+        ? conv.unread_count_client
+        : conv.unread_count_professional;
+      return acc + (unread || 0);
+    }, 0);
+
+    setTotalUnreadCount(total);
+  }, [conversations, user?.id]);
 
   const fetchConversations = useCallback(async (profileId: string) => {
     try {
@@ -78,9 +114,10 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setConversations(data as unknown as ConversationWithProfiles[] || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching conversations:', err);
-      setError(err.message || 'Error al cargar conversaciones');
+      const message = err instanceof Error ? err.message : 'Error al cargar conversaciones';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -117,9 +154,10 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setCurrentConversation(data as unknown as ConversationWithProfiles);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching conversation:', err);
-      setError(err.message || 'Error al cargar conversación');
+      const message = err instanceof Error ? err.message : 'Error al cargar conversación';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -160,9 +198,12 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       if (fetchError) throw fetchError;
 
       setMessages(data as unknown as MessageWithSender[] || []);
-    } catch (err: any) {
+
+      // Don't auto-mark as read - let the user scroll to bottom first
+    } catch (err: unknown) {
       console.error('Error fetching messages:', err);
-      setError(err.message || 'Error al cargar mensajes');
+      const message = err instanceof Error ? err.message : 'Error al cargar mensajes';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -201,9 +242,10 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       if (createError) throw createError;
 
       return newConversation.id;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating conversation:', err);
-      setError(err.message || 'Error al crear conversación');
+      const message = err instanceof Error ? err.message : 'Error al crear conversación';
+      setError(message);
       return null;
     } finally {
       setLoading(false);
@@ -219,8 +261,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     try {
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      if (!user?.id) throw new Error('Usuario no autenticado');
 
       let actualConversationId = conversationId;
 
@@ -293,17 +334,18 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       setPendingConversationData(null);
 
       // Refresh conversations list to include the new conversation
-      if (user) {
+      if (user?.id) {
         await fetchConversations(user.id);
       }
 
       return actualConversationId;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error sending message:', err);
-      setError(err.message || 'Error al enviar mensaje');
+      const message = err instanceof Error ? err.message : 'Error al enviar mensaje';
+      setError(message);
       throw err;
     }
-  }, [supabase, createOrGetConversation, fetchConversationById, fetchConversations]);
+  }, [user, supabase, createOrGetConversation, fetchConversationById, fetchConversations]);
 
   const markMessageAsRead = useCallback(async (messageId: string) => {
     try {
@@ -325,10 +367,35 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
             : msg
         )
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error marking message as read:', err);
     }
   }, [supabase]);
+
+  const markConversationMessagesAsRead = useCallback(async (conversationId: string) => {
+    if (!user?.id) return;
+    
+    try {
+      await supabase.rpc('mark_conversation_messages_as_read', {
+        p_conversation_id: conversationId,
+        p_reader_profile_id: user.id
+      });
+
+      // Update local state - mark all messages from other users as read
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.sender_profile_id !== user.id
+            ? { ...msg, is_read: true, read_at: new Date().toISOString() }
+            : msg
+        )
+      );
+
+      // Refresh conversations to update unread counts
+      await fetchConversations(user.id);
+    } catch (err: unknown) {
+      console.error('Error marking conversation messages as read:', err);
+    }
+  }, [supabase, user?.id, fetchConversations]);
 
   const setPendingConversation = useCallback((
     clientId: string,
@@ -355,23 +422,84 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       is_active: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      client_profile: null as any,
+      client_profile: null as unknown as Profile,
       professional_profile: {
         id: professionalId,
         full_name: professionalName || 'Profesional',
         avatar_url: professionalAvatar || null,
         last_seen_at: null,
-      } as any,
+      } as unknown as Profile,
     } as ConversationWithProfiles);
     
     setMessages([]);
   }, []);
 
+  // Subscribe to conversations updates and new messages for the current user
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const globalChannel = supabase
+      .channel('user-global-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'conversations',
+          filter: `client_profile_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          // Refresh conversations list
+          if (user?.id) {
+            await fetchConversations(user.id);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `professional_profile_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          // Refresh conversations list
+          if (user?.id) {
+            await fetchConversations(user.id);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        async (payload) => {
+          // Check if this message is for a conversation the user is part of
+          const messageConversationId = payload.new.conversation_id;
+          const isForUser = conversations.some(conv => conv.id === messageConversationId);
+          
+          if (isForUser && payload.new.sender_profile_id !== user.id) {            
+            // Refresh conversations to update counters and preview
+            await fetchConversations(user.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(globalChannel);
+    };
+  }, [user?.id, supabase, fetchConversations, conversations]);
+
   // Subscribe to new messages in current conversation
   useEffect(() => {
     if (!currentConversation || currentConversation.id === 'pending') return;
 
-    const channel = supabase
+    const messagesChannel = supabase
       .channel(`messages:${currentConversation.id}`)
       .on(
         'postgres_changes',
@@ -382,6 +510,9 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           filter: `conversation_id=eq.${currentConversation.id}`,
         },
         async (payload) => {
+          // Don't add if it's from the current user (already added optimistically)
+          const isOwnMessage = payload.new.sender_profile_id === user?.id;
+          
           // Fetch the new message with sender info
           const { data } = await supabase
             .from('messages')
@@ -410,17 +541,43 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
             .eq('id', payload.new.id)
             .single();
 
-          if (data) {
-            setMessages((prev) => [...prev, data as unknown as MessageWithSender]);
+          if (data && !isOwnMessage) {
+            // Check if message already exists (avoid duplicates)
+            setMessages((prev) => {
+              const exists = prev.some((msg) => msg.id === data.id);
+              if (exists) return prev;
+              return [...prev, data as unknown as MessageWithSender];
+            });
+
+            // Don't auto-mark as read - let ChatDetailScreen handle it based on scroll position
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${currentConversation.id}`,
+        },
+        async (payload) => {
+          // Update the message in local state
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === payload.new.id
+                ? { ...msg, ...payload.new }
+                : msg
+            )
+          );
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
     };
-  }, [currentConversation, supabase]);
+  }, [currentConversation, user?.id, supabase, markMessageAsRead]);
 
   return (
     <ChatsContext.Provider
@@ -430,11 +587,13 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         messages,
         loading,
         error,
+        totalUnreadCount,
         fetchConversations,
         fetchConversationById,
         fetchMessages,
         sendMessage,
         markMessageAsRead,
+        markConversationMessagesAsRead,
         createOrGetConversation,
         setPendingConversation,
       }}

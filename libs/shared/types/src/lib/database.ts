@@ -2118,6 +2118,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      mark_conversation_messages_as_read: {
+        Args: { p_conversation_id: string; p_reader_profile_id: string }
+        Returns: undefined
+      }
       path: {
         Args: { "": unknown }
         Returns: unknown

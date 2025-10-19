@@ -7,8 +7,13 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PasswordRecoverySchema, passwordRecoverySchema } from '@conecteja/schemas';
 import { useAuth } from '../../contexts/AuthContext';
+import { AccountRecoveryScreenNavigationProp } from '../../types/navigation';
 
-export default function AccountRecoveryScreen({ navigation }: any) {
+interface AccountRecoveryScreenProps {
+  navigation: AccountRecoveryScreenNavigationProp;
+}
+
+export default function AccountRecoveryScreen({ navigation }: AccountRecoveryScreenProps) {
   const { t } = useTranslation();
   const { sendPasswordResetEmail } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -35,8 +40,9 @@ export default function AccountRecoveryScreen({ navigation }: any) {
     try {
       await sendPasswordResetEmail(formData.email);
       setSuccessMessage(t('auth.passwordRecovery.successMessage'));
-    } catch (error: any) {
-      setApiError(error.message || t('auth.passwordRecovery.errors.generic'));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t('auth.passwordRecovery.errors.generic');
+      setApiError(message);
     } finally {
       setLoading(false);
     }

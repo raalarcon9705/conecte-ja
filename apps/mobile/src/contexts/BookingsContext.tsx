@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import type { Database } from '@conecteja/types';
 
@@ -93,9 +93,10 @@ export const BookingsProvider = ({ children }: { children: ReactNode }) => {
       if (fetchError) throw fetchError;
 
       setBookings(data as unknown as BookingWithDetails[] || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching bookings:', err);
-      setError(err.message || 'Error al cargar reservas');
+      const message = err instanceof Error ? err.message : 'Error al cargar reservas';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -141,9 +142,10 @@ export const BookingsProvider = ({ children }: { children: ReactNode }) => {
       const booking = data as unknown as BookingWithDetails;
       setCurrentBooking(booking);
       return booking;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching booking:', err);
-      setError(err.message || 'Error al cargar reserva');
+      const message = err instanceof Error ? err.message : 'Error al cargar reserva';
+      setError(message);
       return null;
     } finally {
       setLoading(false);
@@ -194,9 +196,10 @@ export const BookingsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       return data as Booking;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating booking:', err);
-      setError(err.message || 'Error al crear reserva');
+      const message = err instanceof Error ? err.message : 'Error al crear reserva';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -207,7 +210,14 @@ export const BookingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       setError(null);
 
-      const updateData: any = {
+      const updateData: {
+        status: BookingStatus;
+        updated_at: string;
+        confirmed_at?: string;
+        completed_at?: string;
+        canceled_at?: string;
+        cancellation_reason?: string;
+      } = {
         status,
         updated_at: new Date().toISOString(),
       };
@@ -234,19 +244,20 @@ export const BookingsProvider = ({ children }: { children: ReactNode }) => {
       setBookings((prev) =>
         prev.map((booking) =>
           booking.id === bookingId
-            ? { ...booking, status, ...updateData }
+            ? { ...booking, ...updateData }
             : booking
         )
       );
 
       if (currentBooking?.id === bookingId) {
         setCurrentBooking((prev) =>
-          prev ? { ...prev, status, ...updateData } : null
+          prev ? { ...prev, ...updateData } : null
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating booking status:', err);
-      setError(err.message || 'Error al actualizar reserva');
+      const message = err instanceof Error ? err.message : 'Error al actualizar reserva';
+      setError(message);
       throw err;
     }
   }, [supabase, currentBooking]);

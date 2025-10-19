@@ -24,13 +24,7 @@ import {
 } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { AccountMode } from '@conecteja/supabase';
-
-interface SettingsScreenProps {
-  navigation: {
-    goBack: () => void;
-    navigate: (screen: string) => void;
-  };
-}
+import { SettingsScreenProps } from '../../types/navigation';
 
 export default function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { t } = useTranslation();

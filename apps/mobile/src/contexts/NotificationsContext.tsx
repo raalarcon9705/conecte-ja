@@ -49,9 +49,10 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       // Calculate unread count
       const unread = data?.filter((notif) => !notif.is_read).length || 0;
       setUnreadCount(unread);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching notifications:', err);
-      setError(err.message || 'Error al cargar notificaciones');
+      const message = err instanceof Error ? err.message : 'Error al cargar notificaciones';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -82,9 +83,10 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
 
       // Update unread count
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error marking notification as read:', err);
-      setError(err.message || 'Error al marcar notificación como leída');
+      const message = err instanceof Error ? err.message : 'Error al marcar notificación como leída';
+      setError(message);
       throw err;
     }
   };
@@ -114,9 +116,10 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       );
 
       setUnreadCount(0);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error marking all notifications as read:', err);
-      setError(err.message || 'Error al marcar todas las notificaciones como leídas');
+      const message = err instanceof Error ? err.message : 'Error al marcar todas las notificaciones como leídas';
+      setError(message);
       throw err;
     }
   };
@@ -141,9 +144,10 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       if (notificationToDelete && !notificationToDelete.is_read) {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting notification:', err);
-      setError(err.message || 'Error al eliminar notificación');
+      const message = err instanceof Error ? err.message : 'Error al eliminar notificación';
+      setError(message);
       throw err;
     }
   };
@@ -217,6 +221,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProfileId, supabase]);
 
   return (

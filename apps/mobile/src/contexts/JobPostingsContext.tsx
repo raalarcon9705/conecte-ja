@@ -5,9 +5,17 @@ import type { Database } from '@conecteja/types';
 // ============================================================================
 // Type Definitions
 // ============================================================================
-type JobPosting = Database['public']['Tables']['job_postings']['Row'];
-type Profile = Database['public']['Tables']['profiles']['Row'];
-type Category = Database['public']['Tables']['categories']['Row'];
+export type JobPosting = Database['public']['Tables']['job_postings']['Row'];
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type Category = Database['public']['Tables']['categories']['Row'];
+export type JobApplication = Database['public']['Tables']['job_applications']['Row'];
+export type ProfessionalProfile = Database['public']['Tables']['professional_profiles']['Row'];
+
+export interface JobApplicationWithDetails extends JobApplication {
+  professional_profiles: ProfessionalProfile & {
+    profiles: Pick<Profile, 'id' | 'full_name' | 'avatar_url'>;
+  };
+}
 
 export interface JobPostingWithDetails extends JobPosting {
   profiles: Profile;
@@ -27,7 +35,7 @@ interface JobPostingsContextType {
   jobPostings: JobPostingWithDetails[];
   currentJobPosting: JobPostingWithDetails | null;
   featuredJobs: JobPostingWithDetails[];
-  myApplications: any[];
+  myApplications: JobApplication[];
   loading: boolean;
   error: string | null;
   
@@ -59,7 +67,7 @@ export const JobPostingsProvider = ({ children }: { children: ReactNode }) => {
   const [jobPostings, setJobPostings] = useState<JobPostingWithDetails[]>([]);
   const [currentJobPosting, setCurrentJobPosting] = useState<JobPostingWithDetails | null>(null);
   const [featuredJobs, setFeaturedJobs] = useState<JobPostingWithDetails[]>([]);
-  const [myApplications, setMyApplications] = useState<any[]>([]);
+  const [myApplications, setMyApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastFetchParams, setLastFetchParams] = useState<{ categoryId?: string; limit?: number } | null>(null);
@@ -106,9 +114,10 @@ export const JobPostingsProvider = ({ children }: { children: ReactNode }) => {
       if (fetchError) throw fetchError;
 
       setJobPostings(data as unknown as JobPostingWithDetails[] || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching job postings:', err);
-      setError(err.message || 'Error loading job postings');
+      const message = err instanceof Error ? err.message : 'Error loading job postings';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -148,7 +157,6 @@ export const JobPostingsProvider = ({ children }: { children: ReactNode }) => {
 
       // If no jobs found with specific category, fetch all available jobs as fallback
       if (professionalCategoryId && (!data || data.length === 0)) {
-        console.log('No jobs found for category, fetching all available jobs...');
         const { data: allJobs, error: allJobsError } = await supabase
           .from('job_postings')
           .select(`
@@ -172,9 +180,10 @@ export const JobPostingsProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setFeaturedJobs(data as unknown as JobPostingWithDetails[] || []);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching featured jobs:', err);
-      setError(err.message || 'Error loading featured jobs');
+      const message = err instanceof Error ? err.message : 'Error loading featured jobs';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -209,9 +218,10 @@ export const JobPostingsProvider = ({ children }: { children: ReactNode }) => {
       const jobPosting = data as unknown as JobPostingWithDetails;
       setCurrentJobPosting(jobPosting);
       return jobPosting;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching job posting by id:', err);
-      setError(err.message || 'Error loading job posting');
+      const message = err instanceof Error ? err.message : 'Error loading job posting';
+      setError(message);
       return null;
     } finally {
       setLoading(false);
@@ -244,9 +254,10 @@ export const JobPostingsProvider = ({ children }: { children: ReactNode }) => {
       if (fetchError) throw fetchError;
 
       setMyApplications(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching applications:', err);
-      setError(err.message || 'Error loading applications');
+      const message = err instanceof Error ? err.message : 'Error loading applications';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -305,9 +316,10 @@ export const JobPostingsProvider = ({ children }: { children: ReactNode }) => {
       if (lastFetchParams) {
         await fetchJobPostings(lastFetchParams.categoryId, lastFetchParams.limit);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error reacting to job:', err);
-      setError(err.message || 'Error registering reaction');
+      const message = err instanceof Error ? err.message : 'Error registering reaction';
+      setError(message);
       throw err;
     }
   }, [supabase, lastFetchParams, fetchJobPostings]);
@@ -335,9 +347,10 @@ export const JobPostingsProvider = ({ children }: { children: ReactNode }) => {
 
       // Refetch applications
       await fetchMyApplications(professionalProfileId);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error applying to job:', err);
-      setError(err.message || 'Error applying to job');
+      const message = err instanceof Error ? err.message : 'Error applying to job';
+      setError(message);
       throw err;
     }
   }, [supabase, fetchMyApplications]);

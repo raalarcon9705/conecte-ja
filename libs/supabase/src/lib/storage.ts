@@ -1,54 +1,34 @@
-export const isWeb = typeof localStorage !== 'undefined';
-
-// Platform-specific storage implementation
-interface SecureStoreInterface {
-  getItemAsync: (key: string) => Promise<string | null>;
-  setItemAsync: (key: string, value: string) => Promise<void>;
-  deleteItemAsync: (key: string) => Promise<void>;
-}
-
-let SecureStore: SecureStoreInterface | undefined;
-if (!isWeb) {
-  try {
-    SecureStore = require('expo-secure-store');
-  } catch (error) {
-    console.warn('expo-secure-store not available:', error);
-  }
-}
+// More reliable web detection
+import 'expo-sqlite/localStorage/install';
+export const isWeb = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
 // Storage adapter for Supabase
+// Supabase auth storage expects all methods to return Promises
+// We wrap localStorage in Promises for consistency
 export const ExpoSecureStoreAdapter = {
-  getItem: (key: string): Promise<string | null> | string | null => {
-    if (isWeb) {
-      return localStorage.getItem(key);
-    } else {
-      if (!SecureStore) {
-        console.error('SecureStore is not available');
-        return Promise.resolve(null);
-      }
-      return SecureStore.getItemAsync(key);
+  getItem: async (key: string): Promise<string | null> => {
+    try {
+      const value = localStorage.getItem(key);
+      return value;
+    } catch (error) {
+      console.error(`[Storage] Error getting item ${key}:`, error);
+      return null;
     }
   },
-  setItem: (key: string, value: string): Promise<void> | void => {
-    if (isWeb) {
+  setItem: async (key: string, value: string): Promise<void> => {
+    try {
       localStorage.setItem(key, value);
-    } else {
-      if (!SecureStore) {
-        console.error('SecureStore is not available');
-        return Promise.resolve();
-      }
-      return SecureStore.setItemAsync(key, value);
+    } catch (error) {
+      console.error(`[Storage] Error setting item ${key}:`, error);
+      throw error;
     }
   },
-  removeItem: (key: string): Promise<void> | void => {
-    if (isWeb) {
+  removeItem: async (key: string): Promise<void> => {
+    try {
       localStorage.removeItem(key);
-    } else {
-      if (!SecureStore) {
-        console.error('SecureStore is not available');
-        return Promise.resolve();
-      }
-      return SecureStore.deleteItemAsync(key);
+    } catch (error) {
+      console.error(`[Storage] Error removing item ${key}:`, error);
+      throw error;
     }
   },
 };
@@ -70,11 +50,7 @@ export const hasCompletedOnboarding = async (): Promise<boolean> => {
     if (isWeb) {
       value = localStorage.getItem(ONBOARDING_COMPLETED_KEY);
     } else {
-      if (!SecureStore) {
-        console.error('SecureStore is not available');
-        return false;
-      }
-      value = await SecureStore.getItemAsync(ONBOARDING_COMPLETED_KEY);
+      value = localStorage.getItem(ONBOARDING_COMPLETED_KEY);
     }
     return value === 'true';
   } catch (error) {
@@ -89,14 +65,7 @@ export const hasCompletedOnboarding = async (): Promise<boolean> => {
  */
 export const setOnboardingCompleted = async (): Promise<void> => {
   try {
-    if (isWeb) {
-      localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
-    } else {
-      if (!SecureStore) {
-        throw new Error('SecureStore is not available');
-      }
-      await SecureStore.setItemAsync(ONBOARDING_COMPLETED_KEY, 'true');
-    }
+    localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
   } catch (error) {
     console.error('Error setting onboarding status:', error);
     throw error;
@@ -109,14 +78,7 @@ export const setOnboardingCompleted = async (): Promise<void> => {
  */
 export const resetOnboardingStatus = async (): Promise<void> => {
   try {
-    if (isWeb) {
-      localStorage.removeItem(ONBOARDING_COMPLETED_KEY);
-    } else {
-      if (!SecureStore) {
-        throw new Error('SecureStore is not available');
-      }
-      await SecureStore.deleteItemAsync(ONBOARDING_COMPLETED_KEY);
-    }
+    localStorage.removeItem(ONBOARDING_COMPLETED_KEY);
   } catch (error) {
     console.error('Error resetting onboarding status:', error);
     throw error;
@@ -133,11 +95,7 @@ export const getCurrentAccountMode = async (): Promise<AccountMode> => {
     if (isWeb) {
       value = localStorage.getItem(CURRENT_ACCOUNT_MODE_KEY);
     } else {
-      if (!SecureStore) {
-        console.error('SecureStore is not available');
-        return 'client';
-      }
-      value = await SecureStore.getItemAsync(CURRENT_ACCOUNT_MODE_KEY);
+      value = localStorage.getItem(CURRENT_ACCOUNT_MODE_KEY);
     }
     return (value as AccountMode) || 'client';
   } catch (error) {
@@ -153,14 +111,7 @@ export const getCurrentAccountMode = async (): Promise<AccountMode> => {
  */
 export const setCurrentAccountMode = async (mode: AccountMode): Promise<void> => {
   try {
-    if (isWeb) {
-      localStorage.setItem(CURRENT_ACCOUNT_MODE_KEY, mode);
-    } else {
-      if (!SecureStore) {
-        throw new Error('SecureStore is not available');
-      }
-      await SecureStore.setItemAsync(CURRENT_ACCOUNT_MODE_KEY, mode);
-    }
+    localStorage.setItem(CURRENT_ACCOUNT_MODE_KEY, mode);
   } catch (error) {
     console.error('Error setting current account mode:', error);
     throw error;
@@ -173,14 +124,7 @@ export const setCurrentAccountMode = async (mode: AccountMode): Promise<void> =>
  */
 export const resetAccountMode = async (): Promise<void> => {
   try {
-    if (isWeb) {
-      localStorage.removeItem(CURRENT_ACCOUNT_MODE_KEY);
-    } else {
-      if (!SecureStore) {
-        throw new Error('SecureStore is not available');
-      }
-      await SecureStore.deleteItemAsync(CURRENT_ACCOUNT_MODE_KEY);
-    }
+    localStorage.removeItem(CURRENT_ACCOUNT_MODE_KEY);
   } catch (error) {
     console.error('Error resetting account mode:', error);
     throw error;

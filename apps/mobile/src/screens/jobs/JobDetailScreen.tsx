@@ -22,7 +22,6 @@ import {
   Card,
   Avatar,
   Badge,
-  Divider,
   LocationMap,
   NavigationButtons,
 } from '@conecteja/ui-mobile';
@@ -30,19 +29,22 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useChats } from '../../contexts/ChatsContext';
 import { useSupabase } from '../../hooks/useSupabase';
 import { LocationPrivacy, formatCurrency, formatPriceRange } from '@conecteja/utils';
+import { JobDetailScreenProps } from '../../types/navigation';
+import { JobPostingWithDetails } from '../../contexts';
+import { JobApplicationWithDetails } from '../../contexts/JobPostingsContext';
 
-export default function JobDetailScreen({ route, navigation }: any) {
+export default function JobDetailScreen({ route, navigation }: JobDetailScreenProps) {
   const { jobId } = route.params;
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
   const { createOrGetConversation } = useChats();
   const supabase = useSupabase();
 
-  const [job, setJob] = useState<any>(null);
+  const [job, setJob] = useState<JobPostingWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [userReaction, setUserReaction] = useState<'like' | 'dislike' | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<JobApplicationWithDetails[]>([]);
 
   useEffect(() => {
     fetchJobDetail();
@@ -53,6 +55,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
     if (currentMode === 'client') {
       fetchApplications();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
   const fetchJobDetail = async () => {
@@ -77,7 +80,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
         .single();
 
       if (error) throw error;
-      setJob(data);
+      setJob(data as unknown as JobPostingWithDetails);
     } catch (error) {
       console.error('Error fetching job:', error);
       Alert.alert(t('common.error'), t('jobs.detail.errors.loadFailed'));
@@ -154,7 +157,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setApplications(data || []);
+      setApplications(data as unknown as JobApplicationWithDetails[] || []);
     } catch (error) {
       console.error('Error fetching applications:', error);
     }
@@ -275,21 +278,21 @@ export default function JobDetailScreen({ route, navigation }: any) {
           <View className="flex-row items-start mb-4">
             <Avatar
               source={job.profiles?.avatar_url ? { uri: job.profiles.avatar_url } : undefined}
-              name={job.profiles?.full_name || 'Usuario'}
+              name={job.profiles?.full_name || t('common.user')}
               size="lg"
             />
             <View className="flex-1 ml-3">
               <Text variant="h3" weight="bold" className="mb-1">
-                {job.profiles?.full_name || 'Usuario'}
+                {job.profiles?.full_name || t('common.user')}
               </Text>
               <View className="flex-row items-center">
                 <Clock size={14} color="#6b7280" />
                 <Text variant="caption" color="muted" className="ml-1">
-                  {t('jobs.detail.publishedDate', { date: new Date(job.created_at).toLocaleDateString('es-AR') })}
+                  {t('jobs.detail.publishedDate', { date: new Date(job.created_at || '').toLocaleDateString('es-AR') })}
                 </Text>
               </View>
             </View>
-            <Badge variant="info">{job.categories?.name || 'General'}</Badge>
+            <Badge variant="info">{job.categories?.name || t('common.general')}</Badge>
           </View>
 
           {/* Title */}
@@ -403,19 +406,19 @@ export default function JobDetailScreen({ route, navigation }: any) {
               <Text variant="h4" weight="bold" className="mb-3">
                 {t('jobs.detail.applicationsSection', { count: applications.length })}
               </Text>
-              {applications.map((app) => (
+              {applications.map((app: JobApplicationWithDetails) => (
                 <Card key={app.id} variant="outlined" className="mb-2 p-4">
                   <View className="flex-row items-center">
                     <Avatar
                       source={app.professional_profiles?.profiles?.avatar_url
                         ? { uri: app.professional_profiles.profiles.avatar_url }
                         : undefined}
-                      name={app.professional_profiles?.profiles?.full_name || 'Profesional'}
+                      name={app.professional_profiles?.profiles?.full_name || t('common.professional')}
                       size="md"
                     />
                     <View className="flex-1 ml-3">
                       <Text variant="body" weight="bold">
-                        {app.professional_profiles?.profiles?.full_name || 'Profesional'}
+                        {app.professional_profiles?.profiles?.full_name || t('common.professional')}
                       </Text>
                       {app.proposed_price && (
                         <Text variant="caption" color="muted">
@@ -423,12 +426,14 @@ export default function JobDetailScreen({ route, navigation }: any) {
                         </Text>
                       )}
                     </View>
+                    {/* TODO: Implementar ApplicationDetail screen
                     <TouchableOpacity
                       className="bg-blue-600 px-4 py-2 rounded-lg"
-                      onPress={() => navigation.navigate('ApplicationDetail', { applicationId: app.id })}
+                      onPress={() => {}}
                     >
                       <Text className="text-white font-medium">{t('jobs.detail.viewApplication')}</Text>
                     </TouchableOpacity>
+                    */}
                   </View>
                 </Card>
               ))}

@@ -21,8 +21,10 @@ import { useProfessionals } from '../../contexts/ProfessionalsContext';
 import { useFavorites } from '../../contexts/FavoritesContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSupabase } from '../../hooks/useSupabase';
+import { SearchScreenProps } from '../../types/navigation';
+import { JobPostingWithDetails } from '../../contexts';
 
-export default function SearchScreen({ navigation }: any) {
+export default function SearchScreen({ navigation }: SearchScreenProps) {
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
   const supabase = useSupabase();
@@ -32,7 +34,7 @@ export default function SearchScreen({ navigation }: any) {
   const { favorites, toggleFavorite, fetchFavorites } = useFavorites();
   
   // Professional mode: jobs search
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<JobPostingWithDetails[]>([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,8 +84,7 @@ export default function SearchScreen({ navigation }: any) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('Jobs fetched in SearchScreen:', data?.length || 0, 'jobs');
-      setJobs(data || []);
+      setJobs(data as unknown as JobPostingWithDetails[] || []);
     } catch (error) {
       console.error('Error fetching jobs:', error);
     } finally {
@@ -217,8 +218,8 @@ export default function SearchScreen({ navigation }: any) {
                 <ProfessionalCard
                   key={professional.id}
                   id={professional.id!}
-                  name={professional.profiles?.full_name || 'Sin nombre'}
-                  category={professional.categories?.name || 'Sin categoría'}
+                  name={professional.profiles?.full_name || t('common.noName')}
+                  category={professional.categories?.name || t('common.noCategory')}
                   avatar={professional.profiles?.avatar_url || undefined}
                   rating={Number(professional.average_rating) || 0}
                   reviewCount={professional.total_reviews || 0}
@@ -259,19 +260,19 @@ export default function SearchScreen({ navigation }: any) {
                 id={job.id}
                 title={job.title}
                 description={job.description}
-                clientName={job.profiles?.full_name || 'Usuario'}
-                clientAvatar={job.profiles?.avatar_url}
-                category={job.categories?.name || 'General'}
-                location={job.location_city}
-                budgetMin={job.budget_min}
-                budgetMax={job.budget_max}
-                budgetType={job.budget_type}
-                startDate={job.start_date}
-                isRecurring={job.is_recurring}
+                clientName={job.profiles?.full_name || t('common.user')}
+                clientAvatar={job.profiles?.avatar_url || ''}
+                category={job.categories?.name || t('common.general')}
+                location={job.location_city || ''}
+                budgetMin={job.budget_min || 0}
+                budgetMax={job.budget_max || 0}
+                budgetType={job.budget_type as 'fixed' | 'hourly' | 'daily' | 'negotiable' | undefined}
+                startDate={job.start_date || ''}
+                isRecurring={job.is_recurring || false}
                 likesCount={job.likes_count || 0}
                 dislikesCount={job.dislikes_count || 0}
                 applicationsCount={job.applications_count || 0}
-                createdAt={job.created_at}
+                createdAt={job.created_at || ''}
                 onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
                 onLike={() => handleJobLike(job.id)}
                 onApply={() => navigation.navigate('JobApply', { jobId: job.id })}

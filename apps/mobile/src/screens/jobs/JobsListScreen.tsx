@@ -20,7 +20,7 @@ import { JobsListScreenProps } from '../../types/navigation';
 
 export default function JobsListScreen({ navigation }: JobsListScreenProps) {
   const { t } = useTranslation();
-  const { currentMode } = useAuth();
+  const { currentMode, user } = useAuth();
   const supabase = useSupabase();
   const [jobs, setJobs] = useState<JobPostingWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,9 +28,11 @@ export default function JobsListScreen({ navigation }: JobsListScreenProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchJobs();
+    if (user?.id) {
+      fetchJobs();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory]);
+  }, [selectedCategory, currentMode, user?.id]);
 
   const fetchJobs = async () => {
     try {
@@ -49,8 +51,15 @@ export default function JobsListScreen({ navigation }: JobsListScreenProps) {
             name
           )
         `)
-        .eq('status', 'open')
         .order('created_at', { ascending: false });
+
+      // If client mode: show only user's jobs (all statuses)
+      // If professional mode: show only open jobs (public)
+      if (currentMode === 'client') {
+        query = query.eq('client_profile_id', user?.id || '');
+      } else {
+        query = query.eq('status', 'open');
+      }
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);

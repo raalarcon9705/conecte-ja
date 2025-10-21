@@ -49,6 +49,7 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
   const [layoutReady, setLayoutReady] = useState(false);
   const hasScrolledInitiallyRef = useRef(false);
   const markAsReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   // Check if this is a pending conversation (no conversationId yet)
   const isPendingConversation = !conversationId && clientId && professionalId;
@@ -135,15 +136,30 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
     attempts = 0,
     maxAttempts = 20
   ) => {
-    if (scrollViewRef.current) {
-      scrollAction();
-    } else if (attempts < maxAttempts) {
-      requestAnimationFrame(() =>
-        attemptScrollWithRetries(scrollAction, context, attempts + 1, maxAttempts)
-      );
-    } else {
-      console.error(`❌ ${context}: Failed to scroll after ${maxAttempts} attempts`);
+    // Don't attempt scroll if component is unmounted
+    if (!isMountedRef.current) {
+      return;
     }
+
+    if (scrollViewRef.current) {
+      try {
+        scrollAction();
+      } catch (error) {
+        // Silently handle scroll errors during navigation
+        if (attempts < maxAttempts && isMountedRef.current) {
+          setTimeout(() =>
+            attemptScrollWithRetries(scrollAction, context, attempts + 1, maxAttempts),
+            50
+          );
+        }
+      }
+    } else if (attempts < maxAttempts && isMountedRef.current) {
+      setTimeout(() =>
+        attemptScrollWithRetries(scrollAction, context, attempts + 1, maxAttempts),
+        50
+      );
+    }
+    // Removed error logging - fails silently if component unmounts
   }, []);
 
   // Function to scroll to bottom
@@ -159,8 +175,11 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
   }, [conversationId, messages, user?.id, markMessagesAsRead, attemptScrollWithRetries]);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     // Cleanup timeout on unmount
     return () => {
+      isMountedRef.current = false;
       if (markAsReadTimeoutRef.current) {
         clearTimeout(markAsReadTimeoutRef.current);
       }
@@ -206,20 +225,25 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
     if (!loading && messages.length > 0 && layoutReady && scrollViewReady && !hasScrolledInitiallyRef.current) {
       hasScrolledInitiallyRef.current = true;
 
-      attemptScrollWithRetries(() => {
-        if (firstUnreadIndex !== null && firstUnreadIndex > 0) {
-          const unreadPosition = messagePositions.current[firstUnreadIndex];
-          if (unreadPosition !== undefined) {
-            const scrollY = Math.max(0, unreadPosition - 100);
-            scrollViewRef.current?.scrollTo({ x: 0, y: scrollY, animated: false });
+      // Add a small delay to ensure content is fully rendered
+      const scrollTimeout = setTimeout(() => {
+        attemptScrollWithRetries(() => {
+          if (firstUnreadIndex !== null && firstUnreadIndex > 0) {
+            const unreadPosition = messagePositions.current[firstUnreadIndex];
+            if (unreadPosition !== undefined) {
+              const scrollY = Math.max(0, unreadPosition - 100);
+              scrollViewRef.current?.scrollTo({ x: 0, y: scrollY, animated: false });
+            } else {
+              scrollViewRef.current?.scrollToEnd({ animated: false });
+            }
           } else {
             scrollViewRef.current?.scrollToEnd({ animated: false });
           }
-        } else {
-          scrollViewRef.current?.scrollToEnd({ animated: false });
-        }
-        setIsInitialLoad(false);
-      }, 'initialScroll');
+          setIsInitialLoad(false);
+        }, 'initialScroll');
+      }, 100);
+
+      return () => clearTimeout(scrollTimeout);
     }
   }, [loading, layoutReady, scrollViewReady, messages.length, firstUnreadIndex, attemptScrollWithRetries]);
 

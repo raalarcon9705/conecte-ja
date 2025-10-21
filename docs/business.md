@@ -113,7 +113,8 @@ conecteja/                                 # Monorepo Nx
 │   └── seed/                              # Datos iniciales
 │
 ├── docs/                                  # Documentación
-│   ├── business.md                        # Plan de negocio
+│   ├── business.md                        # Plan de negocio y roadmap
+│   ├── job-workflow.md                    # ✅ Flujo de trabajos y aceptación
 │   ├── architecture.md                    # (Pendiente)
 │   ├── database-schema.md                 # (Pendiente)
 │   ├── api-endpoints.md                   # (Pendiente)
@@ -641,5 +642,20 @@ Asumiendo **10,000 usuarios activos/mes**:
 | **Google Maps** | 5 loads | 50,000 | **$0** (dentro de créditos) |
 
 **Conclusión:** Con hasta 10k usuarios, no pagarías nada en mapas. 🎉
+
+---
+
+## 📖 Documentación Adicional
+
+Para información detallada sobre flujos de trabajo específicos, consulta:
+
+- **[Flujo de Trabajos y Aceptación](./job-workflow.md)** - Documentación completa sobre:
+  - Cómo los clientes publican trabajos
+  - Proceso de aplicación de profesionales
+  - Sistema de conversaciones vinculadas a trabajos
+  - Aceptación de profesionales y cierre de trabajos
+  - Manejo de ubicación aproximada vs exacta
+  - Integración con calendario (bookings)
+  - Especificaciones técnicas de implementación
 
 ---

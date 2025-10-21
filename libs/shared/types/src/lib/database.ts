@@ -400,6 +400,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          job_id: string
           last_message_at: string | null
           last_message_preview: string | null
           professional_profile_id: string
@@ -412,6 +413,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          job_id: string
           last_message_at?: string | null
           last_message_preview?: string | null
           professional_profile_id: string
@@ -424,6 +426,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          job_id?: string
           last_message_at?: string | null
           last_message_preview?: string | null
           professional_profile_id?: string
@@ -437,6 +440,13 @@ export type Database = {
             columns: ["client_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
             referencedColumns: ["id"]
           },
           {

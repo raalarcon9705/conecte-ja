@@ -27,11 +27,11 @@ interface ChatsContextType {
   fetchConversations: (profileId: string) => Promise<void>;
   fetchConversationById: (conversationId: string) => Promise<void>;
   fetchMessages: (conversationId: string) => Promise<void>;
-  sendMessage: (conversationId: string | null, content: string, messageType?: string, pendingConversation?: { clientId: string; professionalId: string }) => Promise<string | null>;
+  sendMessage: (conversationId: string | null, content: string, messageType?: string, pendingConversation?: { clientId: string; professionalId: string; jobId: string }) => Promise<string | null>;
   markMessageAsRead: (messageId: string) => Promise<void>;
   markConversationMessagesAsRead: (conversationId: string) => Promise<void>;
-  createOrGetConversation: (clientId: string, professionalId: string) => Promise<string | null>;
-  setPendingConversation: (clientId: string, professionalId: string, professionalName?: string, professionalAvatar?: string) => void;
+  createOrGetConversation: (clientId: string, professionalId: string, jobId: string) => Promise<string | null>;
+  setPendingConversation: (clientId: string, professionalId: string, jobId: string, professionalName?: string, professionalAvatar?: string) => void;
 }
 
 const ChatsContext = createContext<ChatsContextType | undefined>(undefined);
@@ -40,12 +40,15 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
   const [conversations, setConversations] = useState<ConversationWithProfiles[]>([]);
   const [currentConversation, setCurrentConversation] = useState<ConversationWithProfiles | null>(null);
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
+  // Cache de mensajes por conversación
+  const [messagesCache, setMessagesCache] = useState<Record<string, MessageWithSender[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const [, setPendingConversationData] = useState<{
     clientId: string;
     professionalId: string;
+    jobId: string;
     professionalName?: string;
     professionalAvatar?: string;
   } | null>(null);
@@ -168,6 +171,13 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
 
+      // Primero, limpiar los mensajes actuales y cargar desde caché si existe
+      setMessagesCache((prevCache) => {
+        const cachedMessages = prevCache[conversationId] || [];
+        setMessages(cachedMessages);
+        return prevCache;
+      });
+
       const { data, error: fetchError } = await supabase
         .from('messages')
         .select(`
@@ -197,7 +207,14 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
 
       if (fetchError) throw fetchError;
 
-      setMessages(data as unknown as MessageWithSender[] || []);
+      const fetchedMessages = (data as unknown as MessageWithSender[]) || [];
+
+      // Actualizar la caché y el estado de mensajes
+      setMessagesCache((prevCache) => ({
+        ...prevCache,
+        [conversationId]: fetchedMessages,
+      }));
+      setMessages(fetchedMessages);
 
       // Don't auto-mark as read - let the user scroll to bottom first
     } catch (err: unknown) {
@@ -211,7 +228,8 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
 
   const createOrGetConversation = useCallback(async (
     clientId: string,
-    professionalId: string
+    professionalId: string,
+    jobId: string
   ): Promise<string | null> => {
     try {
       setLoading(true);
@@ -223,6 +241,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         .select('id')
         .eq('client_profile_id', clientId)
         .eq('professional_profile_id', professionalId)
+        .eq('job_id', jobId)
         .maybeSingle();
 
       if (existingConversation) {
@@ -235,6 +254,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         .insert({
           client_profile_id: clientId,
           professional_profile_id: professionalId,
+          job_id: jobId,
         })
         .select('id')
         .single();
@@ -256,7 +276,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     conversationId: string | null,
     content: string,
     messageType = 'text',
-    pendingConversation?: { clientId: string; professionalId: string }
+    pendingConversation?: { clientId: string; professionalId: string; jobId: string }
   ): Promise<string | null> => {
     try {
       setError(null);
@@ -269,7 +289,8 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       if (!actualConversationId && pendingConversation) {
         actualConversationId = await createOrGetConversation(
           pendingConversation.clientId,
-          pendingConversation.professionalId
+          pendingConversation.professionalId,
+          pendingConversation.jobId
         );
 
         if (!actualConversationId) {
@@ -318,8 +339,16 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
 
       if (sendError) throw sendError;
 
+      const newMessage = data as unknown as MessageWithSender;
+
       // Add message to local state
-      setMessages((prev) => [...prev, data as unknown as MessageWithSender]);
+      setMessages((prev) => [...prev, newMessage]);
+
+      // Add message to cache
+      setMessagesCache((prevCache) => ({
+        ...prevCache,
+        [actualConversationId]: [...(prevCache[actualConversationId] || []), newMessage],
+      }));
 
       // Update conversation last_message
       await supabase
@@ -374,21 +403,28 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
 
   const markConversationMessagesAsRead = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
-    
+
     try {
       await supabase.rpc('mark_conversation_messages_as_read', {
         p_conversation_id: conversationId,
         p_reader_profile_id: user.id
       });
 
-      // Update local state - mark all messages from other users as read
-      setMessages((prev) =>
-        prev.map((msg) =>
+      const updateMessages = (messages: MessageWithSender[]) =>
+        messages.map((msg) =>
           msg.sender_profile_id !== user.id
             ? { ...msg, is_read: true, read_at: new Date().toISOString() }
             : msg
-        )
-      );
+        );
+
+      // Update local state - mark all messages from other users as read
+      setMessages((prev) => updateMessages(prev));
+
+      // Update cache
+      setMessagesCache((prevCache) => ({
+        ...prevCache,
+        [conversationId]: updateMessages(prevCache[conversationId] || []),
+      }));
 
       // Refresh conversations to update unread counts
       await fetchConversations(user.id);
@@ -400,16 +436,18 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
   const setPendingConversation = useCallback((
     clientId: string,
     professionalId: string,
+    jobId: string,
     professionalName?: string,
     professionalAvatar?: string
   ) => {
     setPendingConversationData({
       clientId,
       professionalId,
+      jobId,
       professionalName,
       professionalAvatar,
     });
-    
+
     // Create a mock conversation for display purposes
     setCurrentConversation({
       id: 'pending',
@@ -430,7 +468,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         last_seen_at: null,
       } as unknown as Profile,
     } as ConversationWithProfiles);
-    
+
     setMessages([]);
   }, []);
 
@@ -478,11 +516,9 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           table: 'messages',
         },
         async (payload) => {
-          // Check if this message is for a conversation the user is part of
-          const messageConversationId = payload.new.conversation_id;
-          const isForUser = conversations.some(conv => conv.id === messageConversationId);
-          
-          if (isForUser && payload.new.sender_profile_id !== user.id) {            
+          // Refresh conversations when any new message is inserted from another user
+          // The query will filter to show only relevant conversations
+          if (payload.new.sender_profile_id !== user.id && user.id) {            
             // Refresh conversations to update counters and preview
             await fetchConversations(user.id);
           }
@@ -493,7 +529,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       supabase.removeChannel(globalChannel);
     };
-  }, [user?.id, supabase, fetchConversations, conversations]);
+  }, [user?.id, supabase, fetchConversations]);
 
   // Subscribe to new messages in current conversation
   useEffect(() => {
@@ -542,11 +578,25 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
             .single();
 
           if (data && !isOwnMessage) {
+            const newMessage = data as unknown as MessageWithSender;
+
             // Check if message already exists (avoid duplicates)
             setMessages((prev) => {
               const exists = prev.some((msg) => msg.id === data.id);
               if (exists) return prev;
-              return [...prev, data as unknown as MessageWithSender];
+              return [...prev, newMessage];
+            });
+
+            // Update cache
+            setMessagesCache((prevCache) => {
+              const conversationMessages = prevCache[currentConversation.id] || [];
+              const exists = conversationMessages.some((msg) => msg.id === data.id);
+              if (exists) return prevCache;
+
+              return {
+                ...prevCache,
+                [currentConversation.id]: [...conversationMessages, newMessage],
+              };
             });
 
             // Don't auto-mark as read - let ChatDetailScreen handle it based on scroll position
@@ -562,14 +612,21 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           filter: `conversation_id=eq.${currentConversation.id}`,
         },
         async (payload) => {
-          // Update the message in local state
-          setMessages((prev) =>
-            prev.map((msg) =>
+          const updateMessageInArray = (messages: MessageWithSender[]) =>
+            messages.map((msg) =>
               msg.id === payload.new.id
                 ? { ...msg, ...payload.new }
                 : msg
-            )
-          );
+            );
+
+          // Update the message in local state
+          setMessages((prev) => updateMessageInArray(prev));
+
+          // Update cache
+          setMessagesCache((prevCache) => ({
+            ...prevCache,
+            [currentConversation.id]: updateMessageInArray(prevCache[currentConversation.id] || []),
+          }));
         }
       )
       .subscribe();

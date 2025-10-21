@@ -1,6 +1,6 @@
 /** @jsxImportSource nativewind */
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
   MapPin,
@@ -24,6 +24,7 @@ import {
   Badge,
   LocationMap,
   NavigationButtons,
+  Input,
 } from '@conecteja/ui-mobile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChats } from '../../contexts/ChatsContext';
@@ -36,7 +37,7 @@ import { JobApplicationWithDetails } from '../../contexts/JobPostingsContext';
 export default function JobDetailScreen({ route, navigation }: JobDetailScreenProps) {
   const { jobId } = route.params;
   const { t } = useTranslation();
-  const { user, currentMode } = useAuth();
+  const { user, currentMode, professionalProfile } = useAuth();
   const { createOrGetConversation } = useChats();
   const supabase = useSupabase();
 
@@ -45,6 +46,10 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
   const [userReaction, setUserReaction] = useState<'like' | 'dislike' | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [applications, setApplications] = useState<JobApplicationWithDetails[]>([]);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<JobApplicationWithDetails | null>(null);
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('09:00');
 
   useEffect(() => {
     fetchJobDetail();
@@ -223,11 +228,12 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
         return;
       }
 
-      // Create or get the conversation immediately
-      // Note: Both parameters must be profiles.id, not professional_profiles.id
+      // Create or get the conversation immediately with job_id
+      // Note: Both client and professional parameters must be profiles.id, not professional_profiles.id
       const conversationId = await createOrGetConversation(
         job.client_profile_id,  // profiles.id of the client
-        user.id                  // profiles.id of the professional (NOT professionalProfile.id!)
+        user.id,                // profiles.id of the professional (NOT professionalProfile.id!)
+        jobId                   // job_id - required field for conversations
       );
 
       if (!conversationId) {
@@ -236,12 +242,173 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
       }
 
       // Navigate to the conversation that was just created
-      navigation.navigate('ChatDetail', { 
+      navigation.navigate('ChatDetail', {
         conversationId,
       });
     } catch (error) {
       console.error('Error creating conversation:', error);
       Alert.alert(t('common.error'), t('jobs.detail.errors.chatFailed'));
+    }
+  };
+
+  const handleAcceptApplication = (application: JobApplicationWithDetails) => {
+    // Set default booking date to job's start date or today
+    const defaultDate = job?.start_date || new Date().toISOString().split('T')[0];
+    setBookingDate(defaultDate);
+    setSelectedApplication(application);
+    setShowAcceptModal(true);
+  };
+
+  const confirmAcceptApplication = async () => {
+    if (!selectedApplication) return;
+
+    try {
+      setShowAcceptModal(false);
+      setLoading(true);
+
+      const application = selectedApplication;
+
+      // Validate date and time
+      if (!bookingDate || !bookingTime) {
+        Alert.alert(t('common.error'), 'Please select date and time for the booking');
+        setLoading(false);
+        return;
+      }
+
+      // 1. Update job posting - assign professional and change status
+      const { error: jobError } = await supabase
+        .from('job_postings')
+        .update({
+          selected_professional_id: application.professional_profile_id,
+          selected_at: new Date().toISOString(),
+          status: 'in_progress',
+        })
+        .eq('id', jobId);
+
+      if (jobError) throw jobError;
+
+      // 2. Accept this application
+      const { error: acceptError } = await supabase
+        .from('job_applications')
+        .update({
+          status: 'accepted',
+          accepted_at: new Date().toISOString(),
+        })
+        .eq('id', application.id);
+
+      if (acceptError) throw acceptError;
+
+      // 3. Reject all other pending applications
+      const { error: rejectError } = await supabase
+        .from('job_applications')
+        .update({
+          status: 'rejected',
+          rejected_at: new Date().toISOString(),
+        })
+        .eq('job_posting_id', jobId)
+        .neq('id', application.id)
+        .eq('status', 'pending');
+
+      if (rejectError) throw rejectError;
+
+      // 4. Create booking/event in calendar with selected date and time
+      const bookingData = {
+        client_profile_id: job?.client_profile_id || '',
+        professional_profile_id: application.professional_profile_id,
+        booking_date: bookingDate,  // Use selected date
+        start_time: bookingTime,    // Use selected time
+        service_name: job?.title || '',
+        service_description: job?.description,
+        price: application.proposed_price || job?.budget_max || job?.budget_min,
+        location_address: job?.location_address,
+        location_latitude: job?.location_latitude,
+        location_longitude: job?.location_longitude,
+        status: 'confirmed',
+      };
+
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .insert(bookingData);
+
+      if (bookingError) throw bookingError;
+
+      // 5. Create notification for accepted professional
+      await supabase
+        .from('notifications')
+        .insert({
+          profile_id: application.professional_profiles?.profiles?.id,
+          type: 'job_accepted',
+          title: t('jobs.detail.notifications.accepted.title'),
+          body: t('jobs.detail.notifications.accepted.body', {
+            jobTitle: job?.title
+          }),
+          action_url: `/jobs/${jobId}`,
+        });
+
+      Alert.alert(
+        t('jobs.detail.acceptApplication.success.title'),
+        t('jobs.detail.acceptApplication.success.message')
+      );
+
+      // Refresh data
+      await fetchJobDetail();
+      await fetchApplications();
+    } catch (error) {
+      console.error('Error accepting application:', error);
+      Alert.alert(t('common.error'), t('jobs.detail.errors.acceptFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectApplication = async (application: JobApplicationWithDetails) => {
+    try {
+      Alert.alert(
+        t('jobs.detail.rejectApplication.title'),
+        t('jobs.detail.rejectApplication.message', {
+          name: application.professional_profiles?.profiles?.full_name
+        }),
+        [
+          {
+            text: t('common.cancel'),
+            style: 'cancel',
+          },
+          {
+            text: t('jobs.detail.rejectApplication.confirm'),
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setLoading(true);
+
+                const { error } = await supabase
+                  .from('job_applications')
+                  .update({
+                    status: 'rejected',
+                    rejected_at: new Date().toISOString(),
+                  })
+                  .eq('id', application.id);
+
+                if (error) throw error;
+
+                Alert.alert(
+                  t('jobs.detail.rejectApplication.success.title'),
+                  t('jobs.detail.rejectApplication.success.message')
+                );
+
+                // Refresh applications list
+                await fetchApplications();
+              } catch (error) {
+                console.error('Error rejecting application:', error);
+                Alert.alert(t('common.error'), t('jobs.detail.errors.rejectFailed'));
+              } finally {
+                setLoading(false);
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error in handleRejectApplication:', error);
     }
   };
 
@@ -258,7 +425,11 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
   if (!job) return null;
 
   const isOwner = job.client_profile_id === user?.id;
-  const showLocation = isOwner || hasApplied;
+  // Only show exact location if:
+  // 1. User is the client (owner) of the job
+  // 2. User is the selected professional (selected_professional_id)
+  const isSelectedProfessional = job.selected_professional_id === professionalProfile?.id;
+  const showLocation = isOwner || isSelectedProfessional;
 
   return (
     <Screen safe className="bg-gray-50">
@@ -407,8 +578,8 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
                 {t('jobs.detail.applicationsSection', { count: applications.length })}
               </Text>
               {applications.map((app: JobApplicationWithDetails) => (
-                <Card key={app.id} variant="outlined" className="mb-2 p-4">
-                  <View className="flex-row items-center">
+                <Card key={app.id} variant="outlined" className="mb-3 p-4">
+                  <View className="flex-row items-start mb-3">
                     <Avatar
                       source={app.professional_profiles?.profiles?.avatar_url
                         ? { uri: app.professional_profiles.profiles.avatar_url }
@@ -417,24 +588,51 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
                       size="md"
                     />
                     <View className="flex-1 ml-3">
-                      <Text variant="body" weight="bold">
-                        {app.professional_profiles?.profiles?.full_name || t('common.professional')}
-                      </Text>
+                      <View className="flex-row items-center justify-between">
+                        <Text variant="body" weight="bold">
+                          {app.professional_profiles?.profiles?.full_name || t('common.professional')}
+                        </Text>
+                        {app.status === 'accepted' && (
+                          <Badge variant="success">Accepted</Badge>
+                        )}
+                        {app.status === 'rejected' && (
+                          <Badge variant="danger">Rejected</Badge>
+                        )}
+                      </View>
                       {app.proposed_price && (
                         <Text variant="caption" color="muted">
                           {t('jobs.detail.proposedPrice', { price: formatCurrency(app.proposed_price) })}
                         </Text>
                       )}
+                      {app.cover_letter && (
+                        <Text variant="caption" className="mt-2 text-gray-600" numberOfLines={2}>
+                          {app.cover_letter}
+                        </Text>
+                      )}
                     </View>
-                    {/* TODO: Implementar ApplicationDetail screen
-                    <TouchableOpacity
-                      className="bg-blue-600 px-4 py-2 rounded-lg"
-                      onPress={() => {}}
-                    >
-                      <Text className="text-white font-medium">{t('jobs.detail.viewApplication')}</Text>
-                    </TouchableOpacity>
-                    */}
                   </View>
+
+                  {/* Action buttons - only show for pending applications and if no professional selected yet */}
+                  {app.status === 'pending' && !job.selected_professional_id && (
+                    <View className="flex-row gap-2">
+                      <TouchableOpacity
+                        className="flex-1 bg-green-600 py-3 rounded-lg active:bg-green-700"
+                        onPress={() => handleAcceptApplication(app)}
+                      >
+                        <Text className="text-white font-semibold text-center">
+                          Accept
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        className="flex-1 bg-gray-200 py-3 rounded-lg active:bg-gray-300"
+                        onPress={() => handleRejectApplication(app)}
+                      >
+                        <Text className="text-gray-700 font-semibold text-center">
+                          Reject
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </Card>
               ))}
             </View>
@@ -512,6 +710,78 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
           <Spacer size="xl" />
         </Container>
       </ScrollView>
+
+      {/* Accept Application Modal */}
+      <Modal
+        visible={showAcceptModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAcceptModal(false)}
+      >
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="bg-white rounded-t-3xl p-6 pb-8">
+            <Text variant="h3" weight="bold" className="mb-2">
+              Accept Professional
+            </Text>
+            <Text variant="body" color="muted" className="mb-6">
+              Select date and time for the appointment with{' '}
+              {selectedApplication?.professional_profiles?.profiles?.full_name}
+            </Text>
+
+            {/* Date Input */}
+            <View className="mb-4">
+              <Text variant="body" weight="medium" className="mb-2">
+                Date *
+              </Text>
+              <Input
+                value={bookingDate}
+                onChangeText={setBookingDate}
+                placeholder="YYYY-MM-DD"
+                keyboardType="default"
+              />
+              <Text variant="caption" color="muted" className="mt-1">
+                Format: YYYY-MM-DD (e.g., 2025-10-25)
+              </Text>
+            </View>
+
+            {/* Time Input */}
+            <View className="mb-6">
+              <Text variant="body" weight="medium" className="mb-2">
+                Time *
+              </Text>
+              <Input
+                value={bookingTime}
+                onChangeText={setBookingTime}
+                placeholder="HH:MM"
+                keyboardType="default"
+              />
+              <Text variant="caption" color="muted" className="mt-1">
+                Format: HH:MM (e.g., 09:30, 14:00)
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                className="flex-1 bg-gray-200 py-4 rounded-xl active:bg-gray-300"
+                onPress={() => setShowAcceptModal(false)}
+              >
+                <Text className="text-gray-700 font-semibold text-center text-base">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 bg-green-600 py-4 rounded-xl active:bg-green-700"
+                onPress={confirmAcceptApplication}
+              >
+                <Text className="text-white font-semibold text-center text-base">
+                  Confirm
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }

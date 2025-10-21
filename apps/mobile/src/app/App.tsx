@@ -10,7 +10,7 @@ import '../i18n';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { CategoriesProvider } from '../contexts/CategoriesContext';
 import { ProfessionalsProvider } from '../contexts/ProfessionalsContext';
-import { ChatsProvider } from '../contexts/ChatsContext';
+import { ChatsProvider, useChats } from '../contexts/ChatsContext';
 import { BookingsProvider } from '../contexts/BookingsContext';
 import { FavoritesProvider } from '../contexts/FavoritesContext';
 import { NotificationsProvider } from '../contexts/NotificationsContext';
@@ -54,6 +54,7 @@ const Tab = createBottomTabNavigator<TabParamList>();
 // Tabs Navigator
 function MainTabs() {
   const { t } = useTranslation();
+  const { totalUnreadCount } = useChats();
 
   return (
     <Tab.Navigator
@@ -93,6 +94,7 @@ function MainTabs() {
         options={{
           tabBarLabel: t('navigation.chats'),
           tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
+          tabBarBadge: totalUnreadCount > 0 ? totalUnreadCount : undefined,
         }}
       />
       <Tab.Screen

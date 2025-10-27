@@ -1,7 +1,9 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSupabase } from '../hooks/useSupabase';
 import { useAuth } from './AuthContext';
 import type { Database } from '@conecteja/types';
+import type { JobPosting } from './JobPostingsContext';
 
 // Type aliases from database
 type Conversation = Database['public']['Tables']['conversations']['Row'];
@@ -11,6 +13,7 @@ type Profile = Database['public']['Tables']['profiles']['Row'];
 export interface ConversationWithProfiles extends Conversation {
   client_profile: Profile;
   professional_profile: Profile;
+  job_posting?: JobPosting;
 }
 
 export interface MessageWithSender extends Message {
@@ -32,11 +35,17 @@ interface ChatsContextType {
   markConversationMessagesAsRead: (conversationId: string) => Promise<void>;
   createOrGetConversation: (clientId: string, professionalId: string, jobId: string) => Promise<string | null>;
   setPendingConversation: (clientId: string, professionalId: string, jobId: string, professionalName?: string, professionalAvatar?: string) => void;
+  // Chat actions
+  closeContract: (jobPostingId: string, professionalId: string, conversationId: string) => Promise<boolean>;
+  endConversation: (conversationId: string) => Promise<boolean>;
+  blockProfessional: (professionalId: string, reason?: string) => Promise<boolean>;
+  reportProfessional: (professionalId: string, reason?: string, description?: string) => Promise<boolean>;
 }
 
 const ChatsContext = createContext<ChatsContextType | undefined>(undefined);
 
 export const ChatsProvider = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<ConversationWithProfiles[]>([]);
   const [currentConversation, setCurrentConversation] = useState<ConversationWithProfiles | null>(null);
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
@@ -95,17 +104,28 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         .from('conversations')
         .select(`
           *,
-          client_profile:client_profile_id (
+          client_profile:profiles!conversations_client_profile_id_fkey (
             id,
             full_name,
             avatar_url,
             last_seen_at
           ),
-          professional_profile:professional_profile_id (
+          professional_profile:profiles!conversations_professional_profile_id_fkey (
             id,
             full_name,
             avatar_url,
             last_seen_at
+          ),
+          job_posting:job_postings!conversations_job_id_fkey (
+            id,
+            title,
+            description,
+            budget_min,
+            budget_max,
+            budget_type,
+            location_address,
+            status,
+            created_at
           )
         `)
         .or(`client_profile_id.eq.${profileId},professional_profile_id.eq.${profileId}`)
@@ -135,17 +155,28 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         .from('conversations')
         .select(`
           *,
-          client_profile:client_profile_id (
+          client_profile:profiles!conversations_client_profile_id_fkey (
             id,
             full_name,
             avatar_url,
             last_seen_at
           ),
-          professional_profile:professional_profile_id (
+          professional_profile:profiles!conversations_professional_profile_id_fkey (
             id,
             full_name,
             avatar_url,
             last_seen_at
+          ),
+          job_posting:job_postings!conversations_job_id_fkey (
+            id,
+            title,
+            description,
+            budget_min,
+            budget_max,
+            budget_type,
+            location_address,
+            status,
+            created_at
           )
         `)
         .eq('id', conversationId)
@@ -196,7 +227,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           is_flagged,
           flagged_reason,
           moderated_at,
-          sender:sender_profile_id (
+          sender:profiles!messages_sender_profile_id_fkey (
             id,
             full_name,
             avatar_url
@@ -329,7 +360,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           is_flagged,
           flagged_reason,
           moderated_at,
-          sender:sender_profile_id (
+          sender:profiles!messages_sender_profile_id_fkey (
             id,
             full_name,
             avatar_url
@@ -345,10 +376,12 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       setMessages((prev) => [...prev, newMessage]);
 
       // Add message to cache
-      setMessagesCache((prevCache) => ({
-        ...prevCache,
-        [actualConversationId]: [...(prevCache[actualConversationId] || []), newMessage],
-      }));
+      if (actualConversationId) {
+        setMessagesCache((prevCache) => ({
+          ...prevCache,
+          [actualConversationId as string]: [...(prevCache[actualConversationId as string] || []), newMessage],
+        }));
+      }
 
       // Update conversation last_message
       await supabase
@@ -487,6 +520,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           filter: `client_profile_id=eq.${user.id}`,
         },
         async (payload) => {
+          console.log('Client conversation updated:', payload);
           // Refresh conversations list
           if (user?.id) {
             await fetchConversations(user.id);
@@ -502,6 +536,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           filter: `professional_profile_id=eq.${user.id}`,
         },
         async (payload) => {
+          console.log('Professional conversation updated:', payload);
           // Refresh conversations list
           if (user?.id) {
             await fetchConversations(user.id);
@@ -514,11 +549,16 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
+          filter: `sender_profile_id=neq.${user.id}`,
         },
         async (payload) => {
-          // Refresh conversations when any new message is inserted from another user
-          // The query will filter to show only relevant conversations
-          if (payload.new.sender_profile_id !== user.id && user.id) {            
+          console.log('New message received:', payload);
+          // Only refresh if the message is from a conversation the user is part of
+          const conversationId = payload.new.conversation_id;
+          const isRelevantConversation = conversations.some(conv => conv.id === conversationId);
+
+          if (isRelevantConversation && user.id) {
+            console.log('Refreshing conversations due to new message');
             // Refresh conversations to update counters and preview
             await fetchConversations(user.id);
           }
@@ -529,7 +569,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       supabase.removeChannel(globalChannel);
     };
-  }, [user?.id, supabase, fetchConversations]);
+  }, [user?.id, supabase, fetchConversations, conversations]);
 
   // Subscribe to new messages in current conversation
   useEffect(() => {
@@ -546,9 +586,10 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
           filter: `conversation_id=eq.${currentConversation.id}`,
         },
         async (payload) => {
+          console.log('Message in current conversation:', payload);
           // Don't add if it's from the current user (already added optimistically)
           const isOwnMessage = payload.new.sender_profile_id === user?.id;
-          
+
           // Fetch the new message with sender info
           const { data } = await supabase
             .from('messages')
@@ -568,7 +609,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
               is_flagged,
               flagged_reason,
               moderated_at,
-              sender:sender_profile_id (
+              sender:profiles!messages_sender_profile_id_fkey (
                 id,
                 full_name,
                 avatar_url
@@ -634,7 +675,299 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       supabase.removeChannel(messagesChannel);
     };
-  }, [currentConversation, user?.id, supabase, markMessageAsRead]);
+  }, [currentConversation, user?.id, supabase]);
+
+  // Chat actions
+  const closeContract = useCallback(async (jobPostingId: string, professionalId: string, conversationId: string): Promise<boolean> => {
+    try {
+      // 1. Get the job application for this professional
+      const { data: application, error: appError } = await supabase
+        .from('job_applications')
+        .select('id')
+        .eq('job_posting_id', jobPostingId)
+        .eq('professional_profile_id', professionalId)
+        .single();
+
+      if (appError) {
+        console.error('Error finding job application:', appError);
+        return false;
+      }
+
+      // 2. Update job posting - assign professional and change status
+      const { error: jobError } = await supabase
+        .from('job_postings')
+        .update({
+          selected_professional_id: professionalId,
+          selected_at: new Date().toISOString(),
+          status: 'in_progress',
+        })
+        .eq('id', jobPostingId);
+
+      if (jobError) {
+        console.error('Error updating job posting:', jobError);
+        return false;
+      }
+
+      // 3. Accept this application
+      const { error: acceptError } = await supabase
+        .from('job_applications')
+        .update({
+          status: 'accepted',
+          accepted_at: new Date().toISOString(),
+        })
+        .eq('id', application.id);
+
+      if (acceptError) {
+        console.error('Error accepting application:', acceptError);
+        return false;
+      }
+
+      // 4. Reject all other pending applications
+      const { error: rejectError } = await supabase
+        .from('job_applications')
+        .update({
+          status: 'rejected',
+          rejected_at: new Date().toISOString(),
+        })
+        .eq('job_posting_id', jobPostingId)
+        .neq('id', application.id)
+        .eq('status', 'pending');
+
+      if (rejectError) {
+        console.error('Error rejecting other applications:', rejectError);
+        return false;
+      }
+
+      // 5. Get job data for booking creation
+      const { data: jobData, error: jobDataError } = await supabase
+        .from('job_postings')
+        .select('*, profiles!job_postings_client_profile_id_fkey(*)')
+        .eq('id', jobPostingId)
+        .single();
+
+      if (jobDataError) {
+        console.error('Error getting job data:', jobDataError);
+        return false;
+      }
+
+      // 6. Create booking/event in calendar
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          client_profile_id: jobData.client_profile_id,
+          professional_profile_id: professionalId,
+          booking_date: jobData.start_date || new Date().toISOString().split('T')[0],
+          start_time: '09:00', // Default time or extract from job
+          service_name: jobData.title,
+          service_description: jobData.description,
+          price: jobData.budget_max || jobData.budget_min,
+          location_address: jobData.location_address,
+          location_latitude: jobData.location_latitude,
+          location_longitude: jobData.location_longitude,
+          status: 'confirmed'
+        });
+
+      if (bookingError) {
+        console.error('Error creating booking:', bookingError);
+        return false;
+      }
+
+      // 7. Send system message in chat
+      if (user?.id) {
+        const { error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            sender_profile_id: user.id,
+            message_type: 'system',
+            content: t('systemMessages.contractClosed')
+          });
+
+        if (messageError) {
+          console.error('Error sending system message:', messageError);
+          return false;
+        }
+      }
+
+      // 8. Create notification for professional
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          profile_id: professionalId,
+          type: 'job_accepted',
+          title: t('notifications.contractClosed.title'),
+          body: t('notifications.contractClosed.body', { jobTitle: jobData.title }),
+          action_data: { job_id: jobPostingId }
+        });
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error closing contract:', error);
+      return false;
+    }
+  }, [supabase, user?.id, t]);
+
+  const endConversation = useCallback(async (conversationId: string): Promise<boolean> => {
+    try {
+      // Get conversation data first
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .select('professional_profile_id')
+        .eq('id', conversationId)
+        .single();
+
+      if (convError) {
+        console.error('Error getting conversation:', convError);
+        return false;
+      }
+
+      // Update conversation to inactive
+      const { error } = await supabase
+        .from('conversations')
+        .update({
+          is_active: false,
+        })
+        .eq('id', conversationId);
+
+      if (error) {
+        console.error('Error ending conversation:', error);
+        return false;
+      }
+
+      // Send system message in chat
+      if (user?.id) {
+        const { error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            sender_profile_id: user.id,
+            message_type: 'system',
+            content: t('systemMessages.conversationEnded')
+          });
+
+        if (messageError) {
+          console.error('Error sending system message:', messageError);
+          return false;
+        }
+      }
+
+      // Create notification for professional
+      if (conversation.professional_profile_id) {
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert({
+            profile_id: conversation.professional_profile_id,
+            type: 'conversation_ended',
+            title: t('notifications.conversationEnded.title'),
+            body: t('notifications.conversationEnded.body'),
+            action_data: { conversation_id: conversationId }
+          });
+
+        if (notificationError) {
+          console.error('Error creating notification:', notificationError);
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error ending conversation:', error);
+      return false;
+    }
+  }, [supabase, user?.id, t]);
+
+  const blockProfessional = useCallback(async (professionalId: string, reason = 'Blocked from chat'): Promise<boolean> => {
+    try {
+      if (!user?.id) {
+        console.error('User not authenticated');
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('user_blocks')
+        .insert({
+          blocker_profile_id: user.id,
+          blocked_profile_id: professionalId,
+          reason,
+        });
+
+      if (error) {
+        console.error('Error blocking professional:', error);
+        return false;
+      }
+
+      // Create notification for professional
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          profile_id: professionalId,
+          type: 'professional_blocked',
+          title: t('notifications.professionalBlocked.title'),
+          body: t('notifications.professionalBlocked.body'),
+          action_data: { blocked_by: user.id }
+        });
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error blocking professional:', error);
+      return false;
+    }
+  }, [supabase, user?.id, t]);
+
+  const reportProfessional = useCallback(async (professionalId: string, reason = 'Inappropriate behavior', description = 'Reported from chat conversation'): Promise<boolean> => {
+    try {
+      if (!user?.id) {
+        console.error('User not authenticated');
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('reported_content')
+        .insert({
+          reporter_profile_id: user.id,
+          content_type: 'professional_profile',
+          content_id: professionalId,
+          reason,
+          description,
+        });
+
+      if (error) {
+        console.error('Error reporting professional:', error);
+        return false;
+      }
+
+      // Create notification for professional
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          profile_id: professionalId,
+          type: 'professional_reported',
+          title: t('notifications.professionalReported.title'),
+          body: t('notifications.professionalReported.body'),
+          action_data: { reported_by: user.id }
+        });
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error reporting professional:', error);
+      return false;
+    }
+  }, [supabase, user?.id, t]);
 
   return (
     <ChatsContext.Provider
@@ -653,6 +986,10 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         markConversationMessagesAsRead,
         createOrGetConversation,
         setPendingConversation,
+        closeContract,
+        endConversation,
+        blockProfessional,
+        reportProfessional,
       }}
     >
       {children}

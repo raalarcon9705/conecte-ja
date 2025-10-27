@@ -24,7 +24,7 @@ import {
   Badge,
   LocationMap,
   NavigationButtons,
-  Input,
+  DatePicker,
 } from '@conecteja/ui-mobile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChats } from '../../contexts/ChatsContext';
@@ -50,6 +50,9 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
   const [selectedApplication, setSelectedApplication] = useState<JobApplicationWithDetails | null>(null);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('09:00');
+  const [bookingDateObject, setBookingDateObject] = useState(new Date());
+  const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+  const [dateTimePickerMode, setDateTimePickerMode] = useState<'date' | 'time'>('date');
 
   useEffect(() => {
     fetchJobDetail();
@@ -251,10 +254,22 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
     }
   };
 
+
+  const showDatepicker = () => {
+    setDateTimePickerMode('date');
+    setShowDateTimePicker(true);
+  };
+
+  const showTimepicker = () => {
+    setDateTimePickerMode('time');
+    setShowDateTimePicker(true);
+  };
+
   const handleAcceptApplication = (application: JobApplicationWithDetails) => {
     // Set default booking date to job's start date or today
-    const defaultDate = job?.start_date || new Date().toISOString().split('T')[0];
-    setBookingDate(defaultDate);
+    const defaultDate = job?.start_date ? new Date(job.start_date) : new Date();
+    setBookingDateObject(defaultDate);
+    setBookingDate(defaultDate.toISOString().split('T')[0]);
     setSelectedApplication(application);
     setShowAcceptModal(true);
   };
@@ -270,7 +285,7 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
 
       // Validate date and time
       if (!bookingDate || !bookingTime) {
-        Alert.alert(t('common.error'), 'Please select date and time for the booking');
+        Alert.alert(t('common.error'), t('jobs.detail.acceptApplication.validation.selectDateTime'));
         setLoading(false);
         return;
       }
@@ -513,7 +528,7 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
                     ? `${t('jobs.detail.from')} ${formatCurrency(job.budget_min)}`
                     : t('jobs.detail.negotiable')}
                   {job.budget_type === 'hourly' && t('common.perHour')}
-                  {job.budget_type === 'daily' && ' /día'}
+                  {job.budget_type === 'daily' && t('common.perDay')}
                 </Text>
               </View>
             </View>
@@ -547,22 +562,24 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
           )}
 
           {/* Stats */}
-          <Card variant="outlined" className="mb-4">
+          <Card variant="outlined" className="mb-4 bg-gray-50">
             <View className="p-4 flex-row justify-around">
-              <View className="items-center">
+              <View className="items-center px-4">
                 <View className="flex-row items-center mb-1">
                   <ThumbsUp size={18} color="#10b981" />
-                  <Text variant="h4" weight="bold" className="ml-2">
+                  <Text variant="h4" weight="bold" className="ml-2 text-gray-800">
                     {job.likes_count || 0}
                   </Text>
                 </View>
                 <Text variant="caption" color="muted">{t('jobs.detail.stats.likes')}</Text>
               </View>
 
-              <View className="items-center">
+              <View className="w-px bg-gray-200" />
+
+              <View className="items-center px-4">
                 <View className="flex-row items-center mb-1">
                   <Users size={18} color="#3b82f6" />
-                  <Text variant="h4" weight="bold" className="ml-2">
+                  <Text variant="h4" weight="bold" className="ml-2 text-gray-800">
                     {job.applications_count || 0}
                   </Text>
                 </View>
@@ -578,34 +595,34 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
                 {t('jobs.detail.applicationsSection', { count: applications.length })}
               </Text>
               {applications.map((app: JobApplicationWithDetails) => (
-                <Card key={app.id} variant="outlined" className="mb-3 p-4">
+                <Card key={app.id} variant="default" className="mb-3 p-4 bg-white shadow-sm">
                   <View className="flex-row items-start mb-3">
                     <Avatar
                       source={app.professional_profiles?.profiles?.avatar_url
                         ? { uri: app.professional_profiles.profiles.avatar_url }
                         : undefined}
                       name={app.professional_profiles?.profiles?.full_name || t('common.professional')}
-                      size="md"
+                      size="lg"
                     />
-                    <View className="flex-1 ml-3">
+                    <View className="flex-1 ml-4">
                       <View className="flex-row items-center justify-between">
                         <Text variant="body" weight="bold">
                           {app.professional_profiles?.profiles?.full_name || t('common.professional')}
                         </Text>
                         {app.status === 'accepted' && (
-                          <Badge variant="success">Accepted</Badge>
+                          <Badge variant="success">{t('jobs.detail.applications.status.accepted')}</Badge>
                         )}
                         {app.status === 'rejected' && (
-                          <Badge variant="danger">Rejected</Badge>
+                          <Badge variant="danger">{t('jobs.detail.applications.status.rejected')}</Badge>
                         )}
                       </View>
                       {app.proposed_price && (
-                        <Text variant="caption" color="muted">
+                        <Text variant="caption" color="muted" className="mt-1">
                           {t('jobs.detail.proposedPrice', { price: formatCurrency(app.proposed_price) })}
                         </Text>
                       )}
                       {app.cover_letter && (
-                        <Text variant="caption" className="mt-2 text-gray-600" numberOfLines={2}>
+                        <Text variant="caption" className="mt-2 text-gray-600 leading-5" numberOfLines={2}>
                           {app.cover_letter}
                         </Text>
                       )}
@@ -614,21 +631,21 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
 
                   {/* Action buttons - only show for pending applications and if no professional selected yet */}
                   {app.status === 'pending' && !job.selected_professional_id && (
-                    <View className="flex-row gap-2">
+                    <View className="flex-row gap-3 pt-3 border-t border-gray-100">
                       <TouchableOpacity
-                        className="flex-1 bg-green-600 py-3 rounded-lg active:bg-green-700"
+                        className="flex-1 bg-green-600 py-3 rounded-lg active:bg-green-700 items-center justify-center"
                         onPress={() => handleAcceptApplication(app)}
                       >
                         <Text className="text-white font-semibold text-center">
-                          Accept
+                          {t('jobs.detail.applications.actions.accept')}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        className="flex-1 bg-gray-200 py-3 rounded-lg active:bg-gray-300"
+                        className="flex-1 bg-gray-200 py-3 rounded-lg active:bg-gray-300 items-center justify-center"
                         onPress={() => handleRejectApplication(app)}
                       >
                         <Text className="text-gray-700 font-semibold text-center">
-                          Reject
+                          {t('jobs.detail.applications.actions.reject')}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -721,43 +738,30 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-white rounded-t-3xl p-6 pb-8">
             <Text variant="h3" weight="bold" className="mb-2">
-              Accept Professional
+              {t('jobs.detail.acceptApplication.title')}
             </Text>
             <Text variant="body" color="muted" className="mb-6">
-              Select date and time for the appointment with{' '}
-              {selectedApplication?.professional_profiles?.profiles?.full_name}
+              {t('jobs.detail.acceptApplication.description', { name: selectedApplication?.professional_profiles?.profiles?.full_name })}
             </Text>
 
             {/* Date Input */}
             <View className="mb-4">
               <Text variant="body" weight="medium" className="mb-2">
-                Date *
+                {t('jobs.detail.acceptApplication.dateLabel')}
               </Text>
-              <Input
-                value={bookingDate}
-                onChangeText={setBookingDate}
-                placeholder="YYYY-MM-DD"
-                keyboardType="default"
-              />
-              <Text variant="caption" color="muted" className="mt-1">
-                Format: YYYY-MM-DD (e.g., 2025-10-25)
-              </Text>
+              <TouchableOpacity onPress={showDatepicker} className="bg-gray-100 p-4 rounded-lg">
+                <Text className="text-gray-800">{bookingDate}</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Time Input */}
             <View className="mb-6">
               <Text variant="body" weight="medium" className="mb-2">
-                Time *
+                {t('jobs.detail.acceptApplication.timeLabel')}
               </Text>
-              <Input
-                value={bookingTime}
-                onChangeText={setBookingTime}
-                placeholder="HH:MM"
-                keyboardType="default"
-              />
-              <Text variant="caption" color="muted" className="mt-1">
-                Format: HH:MM (e.g., 09:30, 14:00)
-              </Text>
+              <TouchableOpacity onPress={showTimepicker} className="bg-gray-100 p-4 rounded-lg">
+                <Text className="text-gray-800">{bookingTime}</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Action Buttons */}
@@ -767,7 +771,7 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
                 onPress={() => setShowAcceptModal(false)}
               >
                 <Text className="text-gray-700 font-semibold text-center text-base">
-                  Cancel
+                  {t('common.cancel')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -775,10 +779,29 @@ export default function JobDetailScreen({ route, navigation }: JobDetailScreenPr
                 onPress={confirmAcceptApplication}
               >
                 <Text className="text-white font-semibold text-center text-base">
-                  Confirm
+                  {t('common.confirm')}
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {showDateTimePicker && (
+              <DatePicker
+                value={bookingDateObject}
+                mode={dateTimePickerMode}
+                onChange={(date) => {
+                  setBookingDateObject(date);
+                  if (dateTimePickerMode === 'date') {
+                    const dateString = date.toISOString().split('T')[0];
+                    setBookingDate(dateString);
+                  } else {
+                    const timeString = date.toTimeString().split(' ')[0].substring(0, 5);
+                    setBookingTime(timeString);
+                  }
+                  setShowDateTimePicker(false);
+                }}
+                onCancel={() => setShowDateTimePicker(false)}
+              />
+            )}
           </View>
         </View>
       </Modal>

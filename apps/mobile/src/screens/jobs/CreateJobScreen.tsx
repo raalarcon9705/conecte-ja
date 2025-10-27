@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { MapPin, ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import {
   Screen,
   Text,
@@ -11,8 +11,11 @@ import {
   Container,
   Spacer,
   LocationMap,
+  DatePicker,
+  AddressForm,
 } from '@conecteja/ui-mobile';
 import { useAuth } from '../../contexts/AuthContext';
+import { useProfile } from '../../contexts/ProfileContext';
 import { useSupabase } from '../../hooks/useSupabase';
 import { LocationPrivacy } from '@conecteja/utils';
 import { CreateJobScreenProps } from '../../types/navigation';
@@ -20,15 +23,35 @@ import { CreateJobScreenProps } from '../../types/navigation';
 export default function CreateJobScreen({ navigation }: CreateJobScreenProps) {
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
+  const { profile } = useProfile();
   const supabase = useSupabase();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
+  const [address, setAddress] = useState({
+    postalCode: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+  });
+
+  // Initialize address with user's profile data
+  React.useEffect(() => {
+    if (profile?.address && profile?.city && !address.postalCode) {
+      setAddress(prev => ({
+        ...prev,
+        street: profile.address || '',
+        city: profile.city || '',
+      }));
+    }
+  }, [profile, address.postalCode]);
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
   const [budgetType, setBudgetType] = useState<'hourly' | 'daily' | 'fixed' | 'negotiable'>('negotiable');
-  const [startDate, setStartDate] = useState('');
+  const [startDate, setStartDate] = useState(new Date());
   const [isRecurring, setIsRecurring] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -43,11 +66,66 @@ export default function CreateJobScreen({ navigation }: CreateJobScreenProps) {
     }
   }, [currentMode, navigation, t]);
 
-  // Mock location - in real app, use geolocation
-  const [coordinates] = useState({
-    latitude: -34.6037,
-    longitude: -58.3816,
-  });
+  // Check if address form is complete (all required fields filled)
+  const isAddressComplete = address.postalCode && address.street && address.number && address.neighborhood && address.city && address.state;
+
+  // State for geocoded coordinates
+  const [geocodedCoordinates, setGeocodedCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Geocoding function using OpenStreetMap Nominatim
+  const geocodeAddress = React.useCallback(async (addressData: typeof address) => {
+    setIsGeocoding(true);
+    try {
+      const fullAddress = `${addressData.street}, ${addressData.number}${addressData.complement ? `, ${addressData.complement}` : ''}, ${addressData.neighborhood}, ${addressData.city}, ${addressData.state}, Brasil`;
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1&countrycodes=br`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const result = data[0];
+          setGeocodedCoordinates({
+            latitude: parseFloat(result.lat),
+            longitude: parseFloat(result.lon)
+          });
+          console.log('Geocoded coordinates:', { lat: result.lat, lon: result.lon });
+        }
+      }
+    } catch (error) {
+      console.error('Error geocoding address:', error);
+    } finally {
+      setIsGeocoding(false);
+    }
+  }, []);
+
+  // Geocode address when form is completed
+  React.useEffect(() => {
+    if (isAddressComplete) {
+      geocodeAddress(address);
+    }
+  }, [isAddressComplete, address, geocodeAddress]);
+
+  // Use geocoded coordinates, user's location, or default to Centro Florianópolis
+  const coordinates = geocodedCoordinates
+    ? geocodedCoordinates
+    : profile?.latitude && profile?.longitude
+    ? { latitude: profile.latitude, longitude: profile.longitude }
+    : { latitude: -27.5954, longitude: -48.5480 };
+
+  const handleAddressChange = React.useCallback((newAddress: {
+    postalCode: string;
+    street: string;
+    number: string;
+    complement: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+  }) => {
+    setAddress(newAddress);
+  }, []);
 
   const handleSubmit = async () => {
     if (!title.trim() || !description.trim()) {
@@ -67,13 +145,13 @@ export default function CreateJobScreen({ navigation }: CreateJobScreenProps) {
         client_profile_id: user.id,
         title: title.trim(),
         description: description.trim(),
-        location_city: location.trim() || null,
+        location_city: address.city || null,
         location_latitude: coordinates.latitude,
         location_longitude: coordinates.longitude,
         budget_min: budgetMin ? parseFloat(budgetMin) : null,
         budget_max: budgetMax ? parseFloat(budgetMax) : null,
         budget_type: budgetType,
-        start_date: startDate || null,
+        start_date: startDate ? startDate.toISOString() : null,
         is_recurring: isRecurring,
         status: 'open',
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
@@ -162,16 +240,29 @@ export default function CreateJobScreen({ navigation }: CreateJobScreenProps) {
             </Text>
           </View>
 
-          {/* Location */}
+          {/* Address */}
           <View className="mb-4">
-            <Text variant="body" weight="medium" className="mb-2">
-              {t('jobs.create.location')}
-            </Text>
-            <Input
-              value={location}
-              onChangeText={setLocation}
-              placeholder={t('jobs.create.locationPlaceholder')}
-              leftIcon={<MapPin size={20} color="#6b7280" />}
+            <AddressForm
+              onAddressChange={handleAddressChange}
+              initialValues={address}
+              labels={{
+                postalCode: t('jobs.create.address.postalCode'),
+                street: t('jobs.create.address.street'),
+                number: t('jobs.create.address.number'),
+                complement: t('jobs.create.address.complement'),
+                neighborhood: t('jobs.create.address.neighborhood'),
+                city: t('jobs.create.address.city'),
+                state: t('jobs.create.address.state'),
+              }}
+              placeholders={{
+                postalCode: t('jobs.create.address.postalCodePlaceholder'),
+                street: t('jobs.create.address.streetPlaceholder'),
+                number: t('jobs.create.address.numberPlaceholder'),
+                complement: t('jobs.create.address.complementPlaceholder'),
+                neighborhood: t('jobs.create.address.neighborhoodPlaceholder'),
+                city: t('jobs.create.address.cityPlaceholder'),
+                state: t('jobs.create.address.statePlaceholder'),
+              }}
             />
           </View>
 
@@ -186,7 +277,37 @@ export default function CreateJobScreen({ navigation }: CreateJobScreenProps) {
               privacy={LocationPrivacy.APPROXIMATE}
               radius={1000}
             />
-            <Text variant="caption" color="muted" className="mt-2">
+            {isAddressComplete && (
+              <Text variant="caption" color="muted" className="mt-2">
+                {t('jobs.create.address.selected')}: {address.street}, {address.number}{address.complement ? `, ${address.complement}` : ''}, {address.neighborhood}, {address.city} - {address.state}
+              </Text>
+            )}
+            {isAddressComplete && isGeocoding && (
+              <Text variant="caption" color="muted" className="mt-1">
+                {t('jobs.create.address.geocoding')}
+              </Text>
+            )}
+            {isAddressComplete && !isGeocoding && geocodedCoordinates && (
+              <Text variant="caption" color="success" className="mt-1">
+                {t('jobs.create.address.coordinatesFound')}: {geocodedCoordinates.latitude.toFixed(6)}, {geocodedCoordinates.longitude.toFixed(6)}
+              </Text>
+            )}
+            {address.postalCode && !isAddressComplete && (
+              <Text variant="caption" color="error" className="mt-2">
+                {t('jobs.create.address.completeRequired')}
+              </Text>
+            )}
+            {!address.postalCode && profile?.address && (
+              <Text variant="caption" color="muted" className="mt-2">
+                {t('jobs.create.address.default')}: {profile.address}, {profile.city}
+              </Text>
+            )}
+            {!address.postalCode && !profile?.address && (
+              <Text variant="caption" color="muted" className="mt-2">
+                {t('jobs.create.address.default')}: Centro de Florianópolis
+              </Text>
+            )}
+            <Text variant="caption" color="muted" className="mt-1">
               {t('jobs.create.locationNote')}
             </Text>
           </View>
@@ -243,14 +364,13 @@ export default function CreateJobScreen({ navigation }: CreateJobScreenProps) {
 
           {/* Start Date */}
           <View className="mb-4">
-            <Text variant="body" weight="medium" className="mb-2">
-              {t('jobs.create.startDate')}
-            </Text>
-            <Input
+            <DatePicker
               value={startDate}
-              onChangeText={setStartDate}
+              onChange={setStartDate}
+              label={t('jobs.create.startDate')}
               placeholder={t('jobs.create.startDatePlaceholder')}
-              keyboardType="numeric"
+              mode="date"
+              minimumDate={new Date()}
             />
           </View>
 

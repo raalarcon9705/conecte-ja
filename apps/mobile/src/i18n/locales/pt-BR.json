@@ -195,6 +195,10 @@
   },
   "bookings": {
     "title": "Minhas Reservas",
+    "subtitle": {
+      "professional": "Gerencie as reservas dos seus clientes",
+      "client": "Revise suas reservas com profissionais"
+    },
     "tabs": {
       "upcoming": "Próximas",
       "completed": "Concluídas",
@@ -203,8 +207,13 @@
     "empty": {
       "title": "Nenhuma reserva",
       "descriptionUpcoming": "Você ainda não tem reservas programadas",
+      "descriptionUpcomingProfessional": "Você não tem reservas pendentes. Candidate-se a trabalhos para receber reservas de clientes.",
       "descriptionOther": "Não há reservas nesta categoria",
-      "action": "Buscar profissionais"
+      "action": "Buscar profissionais",
+      "actionProfessional": "Buscar trabalhos"
+    },
+    "error": {
+      "title": "Erro ao carregar reservas"
     },
     "detail": {
       "title": "Detalhes da Reserva",
@@ -251,6 +260,84 @@
       "placeholder": "Digite uma mensagem...",
       "startConversation": "Inicie uma conversa",
       "firstMessageHint": "Digite a primeira mensagem para começar"
+    },
+    "timestamp": {
+      "now": "Agora",
+      "minutesAgo": "Há {{count}} min",
+      "yesterday": "Ontem"
+    },
+    "jobPreview": {
+      "negotiablePrice": "Preço negociável",
+      "fromPrice": "A partir de R$ {{price}}",
+      "upToPrice": "Até R$ {{price}}",
+      "priceRange": "R$ {{min}} - R$ {{max}}",
+      "consultPrice": "Preço a consultar",
+      "status": {
+        "open": "Aberto",
+        "inProgress": "Em progresso",
+        "completed": "Completado",
+        "canceled": "Cancelado",
+        "expired": "Expirado",
+        "unknown": "Desconhecido"
+      }
+    },
+    "actions": {
+      "title": "Ações rápidas",
+      "more": "Mais opções",
+      "closeContract": "Fechar contrato",
+      "contractClosed": "Contrato fechado",
+      "endConversation": "Encerrar conversa",
+      "block": "Bloquear",
+      "blockProfessional": "Bloquear profissional",
+      "reportProfessional": "Denunciar profissional",
+      "modal": {
+        "title": "Opções de conversa"
+      },
+      "closeContractDetails": {
+        "title": "Fechar contrato",
+        "message": "Tem certeza de que deseja fechar o contrato com este profissional? Você poderá continuar se comunicando para coordenar detalhes.",
+        "confirm": "Fechar contrato",
+        "description": "Finaliza o trabalho mas mantém a comunicação aberta",
+        "success": {
+          "title": "Contrato fechado",
+          "message": "O contrato foi fechado com sucesso. Você pode continuar se comunicando com o profissional."
+        }
+      },
+      "endConversationDetails": {
+        "title": "Encerrar conversa",
+        "message": "Tem certeza de que deseja encerrar esta conversa? Você não poderá enviar mais mensagens.",
+        "confirm": "Encerrar conversa",
+        "description": "Finaliza completamente a conversa",
+        "success": {
+          "title": "Conversa encerrada",
+          "message": "A conversa foi encerrada com sucesso."
+        }
+      },
+      "blockProfessionalDetails": {
+        "title": "Bloquear profissional",
+        "message": "Tem certeza de que deseja bloquear este profissional? Você não poderá ver suas mensagens nem contatá-lo.",
+        "confirm": "Bloquear",
+        "description": "Bloqueia o profissional e termina a comunicação",
+        "success": {
+          "title": "Profissional bloqueado",
+          "message": "O profissional foi bloqueado com sucesso."
+        }
+      },
+      "reportProfessionalDetails": {
+        "title": "Denunciar profissional",
+        "message": "Deseja denunciar este profissional por comportamento inadequado?",
+        "confirm": "Denunciar",
+        "description": "Denuncia comportamento inadequado",
+        "success": {
+          "title": "Denúncia enviada",
+          "message": "Sua denúncia foi enviada e será revisada por nossa equipe."
+        }
+      }
+    },
+    "status": {
+      "contractClosed": "Contrato fechado - Você pode continuar se comunicando",
+      "conversationEnded": "Conversa encerrada",
+      "professionalBlocked": "Profissional bloqueado"
     }
   },
   "profile": {
@@ -407,6 +494,29 @@
       "charactersCount": "{{count}}/1000 caracteres",
       "location": "Localização",
       "locationPlaceholder": "Cidade, bairro",
+      "address": {
+        "postalCode": "CEP",
+        "postalCodePlaceholder": "Digite o CEP...",
+        "street": "Rua",
+        "streetPlaceholder": "Nome da rua",
+        "number": "Número",
+        "numberPlaceholder": "Número",
+        "complement": "Complemento",
+        "complementPlaceholder": "Apto, bloco, etc.",
+        "neighborhood": "Bairro",
+        "neighborhoodPlaceholder": "Bairro",
+        "city": "Cidade",
+        "cityPlaceholder": "Cidade",
+        "state": "Estado",
+        "statePlaceholder": "Estado",
+        "searching": "Buscando endereço...",
+        "notFound": "Nenhum endereço encontrado",
+        "selected": "Endereço selecionado",
+        "default": "Endereço por padrão",
+        "completeRequired": "Complete todos os campos obrigatórios para atualizar o mapa",
+        "geocoding": "Buscando coordenadas exatas...",
+        "coordinatesFound": "Coordenadas encontradas"
+      },
       "locationPreview": "Pré-visualização da localização",
       "locationNote": "A localização exata será mostrada apenas após aceitar uma candidatura",
       "budget": "Orçamento",
@@ -419,7 +529,7 @@
         "negotiable": "Negociável"
       },
       "startDate": "Data de início (opcional)",
-      "startDatePlaceholder": "YYYY-MM-DD",
+      "startDatePlaceholder": "Selecionar data",
       "recurring": "Trabalho recorrente",
       "submit": "Publicar Trabalho",
       "success": {
@@ -508,7 +618,51 @@
         "profileRequired": "Você precisa de um perfil profissional para reagir",
         "reactionFailed": "Não foi possível registrar sua reação",
         "chatProfileRequired": "Você precisa de um perfil profissional para contatar o cliente",
-        "chatFailed": "Não foi possível iniciar o chat"
+        "chatFailed": "Não foi possível iniciar o chat",
+        "acceptFailed": "Não foi possível aceitar a candidatura",
+        "rejectFailed": "Não foi possível rejeitar a candidatura"
+      },
+      "acceptApplication": {
+        "title": "Aceitar Profissional",
+        "description": "Selecione a data e hora para o agendamento com {{name}}",
+        "dateLabel": "Data *",
+        "datePlaceholder": "AAAA-MM-DD",
+        "dateFormat": "Formato: AAAA-MM-DD (ex: 2025-10-25)",
+        "timeLabel": "Hora *",
+        "timePlaceholder": "HH:MM",
+        "timeFormat": "Formato: HH:MM (ex: 09:30, 14:00)",
+        "success": {
+          "title": "Profissional Aceito!",
+          "message": "A candidatura foi aceita e uma reserva foi criada no calendário."
+        },
+        "validation": {
+          "selectDateTime": "Por favor, selecione a data e hora para a reserva"
+        }
+      },
+      "rejectApplication": {
+        "title": "Rejeitar Candidatura",
+        "message": "Você tem certeza que quer rejeitar a candidatura de {{name}}?",
+        "confirm": "Rejeitar",
+        "success": {
+          "title": "Candidatura Rejeitada",
+          "message": "A candidatura foi rejeitada."
+        }
+      },
+      "applications": {
+        "status": {
+          "accepted": "Aceita",
+          "rejected": "Rejeitada"
+        },
+        "actions": {
+          "accept": "Aceitar",
+          "reject": "Rejeitar"
+        }
+      },
+      "notifications": {
+        "accepted": {
+          "title": "Candidatura Aceita!",
+          "body": "Você foi aceito para o trabalho: {{jobTitle}}"
+        }
       }
     },
     "list": {
@@ -573,6 +727,31 @@
     "client": "Cliente",
     "general": "Geral",
     "noName": "Sem nome",
-    "noCategory": "Sem categoria"
+    "noCategory": "Sem categoria",
+    "perDay": "/dia"
+  },
+  "systemMessages": {
+    "contractClosed": "🎉 O contrato foi fechado e um evento foi criado no calendário.",
+    "conversationEnded": "A conversa foi encerrada.",
+    "professionalBlocked": "O profissional foi bloqueado.",
+    "professionalReported": "O profissional foi denunciado."
+  },
+  "notifications": {
+    "contractClosed": {
+      "title": "Contrato Fechado!",
+      "body": "O cliente fechou o contrato para: {{jobTitle}}"
+    },
+    "conversationEnded": {
+      "title": "Conversa Encerrada",
+      "body": "O cliente encerrou a conversa."
+    },
+    "professionalBlocked": {
+      "title": "Profissional Bloqueado",
+      "body": "Você foi bloqueado pelo cliente."
+    },
+    "professionalReported": {
+      "title": "Profissional Denunciado",
+      "body": "Você foi denunciado pelo cliente."
+    }
   }
 }

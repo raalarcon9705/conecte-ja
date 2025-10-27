@@ -19,7 +19,7 @@ import { BookingsScreenProps } from '../../types/navigation';
 export default function BookingsScreen({ navigation }: BookingsScreenProps) {
   const { t } = useTranslation();
   const { user, currentMode } = useAuth();
-  const { bookings, loading, fetchBookings } = useBookings();
+  const { bookings, loading, error, fetchBookings } = useBookings();
   const [activeTab, setActiveTab] = useState('upcoming');
 
   useEffect(() => {
@@ -36,10 +36,16 @@ export default function BookingsScreen({ navigation }: BookingsScreenProps) {
   ];
 
   const filteredBookings = bookings.filter((booking) => {
-    if (activeTab === 'upcoming')
-      return booking.status === 'confirmed' || booking.status === 'pending';
-    if (activeTab === 'completed') return booking.status === 'completed';
-    if (activeTab === 'cancelled') return booking.status === 'canceled';
+    const status = booking.status;
+    if (activeTab === 'upcoming') {
+      return status === 'confirmed' || status === 'pending';
+    }
+    if (activeTab === 'completed') {
+      return status === 'completed';
+    }
+    if (activeTab === 'cancelled') {
+      return status === 'canceled' || status === 'no_show';
+    }
     return false;
   });
 
@@ -48,6 +54,27 @@ export default function BookingsScreen({ navigation }: BookingsScreenProps) {
       <Screen safe className="bg-gray-50">
         <Container className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#3B82F6" />
+          <Text variant="body" color="muted" className="mt-4">
+            {t('common.loading')}
+          </Text>
+        </Container>
+      </Screen>
+    );
+  }
+
+  if (error) {
+    return (
+      <Screen safe className="bg-gray-50">
+        <Container className="flex-1 items-center justify-center">
+          <Empty
+            icon={<Calendar size={64} color="#EF4444" />}
+            title={t('bookings.error.title')}
+            description={error}
+            action={{
+              label: t('common.retry'),
+              onPress: () => user?.id && fetchBookings(user.id, currentMode),
+            }}
+          />
         </Container>
       </Screen>
     );
@@ -59,16 +86,16 @@ export default function BookingsScreen({ navigation }: BookingsScreenProps) {
         <Text variant="h2" weight="bold" className="mb-2">
           {t('bookings.title')}
         </Text>
-        
+
         {currentMode === 'professional' && (
           <Text variant="caption" color="muted" className="mb-4">
-            Gestiona las reservas de tus clientes
+            {t('bookings.subtitle.professional')}
           </Text>
         )}
-        
+
         {currentMode === 'client' && (
           <Text variant="caption" color="muted" className="mb-4">
-            Revisa tus reservas con profesionales
+            {t('bookings.subtitle.client')}
           </Text>
         )}
 
@@ -89,7 +116,7 @@ export default function BookingsScreen({ navigation }: BookingsScreenProps) {
               activeTab === 'upcoming'
                 ? currentMode === 'client'
                   ? t('bookings.empty.descriptionUpcoming')
-                  : 'No tienes reservas pendientes. Aplica a trabajos para recibir reservas de clientes.'
+                  : t('bookings.empty.descriptionUpcomingProfessional')
                 : t('bookings.empty.descriptionOther')
             }
             action={
@@ -100,7 +127,7 @@ export default function BookingsScreen({ navigation }: BookingsScreenProps) {
                       onPress: () => navigation.navigate('Search'),
                     }
                   : {
-                      label: 'Buscar trabajos',
+                      label: t('bookings.empty.actionProfessional'),
                       onPress: () => navigation.navigate('Search'),
                     }
                 : undefined
@@ -125,6 +152,15 @@ export default function BookingsScreen({ navigation }: BookingsScreenProps) {
               year: 'numeric',
             });
 
+            // Map status to BookingCard expected values
+            const statusMap: Record<string, 'pending' | 'confirmed' | 'completed'> = {
+              'pending': 'pending',
+              'confirmed': 'confirmed',
+              'completed': 'completed',
+              'canceled': 'pending', // Show as pending for UI purposes
+              'no_show': 'pending',
+            };
+
             return (
               <BookingCard
                 key={booking.id}
@@ -132,8 +168,8 @@ export default function BookingsScreen({ navigation }: BookingsScreenProps) {
                 professionalName={otherPartyName}
                 serviceName={serviceName}
                 date={formattedDate}
-                time={booking.start_time}
-                status={booking.status as 'pending' | 'confirmed' | 'completed'}
+                time={booking.start_time || ''}
+                status={statusMap[booking.status || 'pending'] || 'pending'}
                 price={booking.price ? formatCurrency(booking.price) : ''}
                 onPress={() =>
                   navigation.navigate('BookingDetail', { id: booking.id })

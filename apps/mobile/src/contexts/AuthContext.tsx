@@ -2,7 +2,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { User } from '@supabase/supabase-js';
-import { RegisterSchema } from '@conecteja/schemas';
 import { useSupabase } from '../hooks/useSupabase';
 import {
   AccountMode,
@@ -11,6 +10,7 @@ import {
   resetAccountMode
 } from '@conecteja/supabase';
 import { ProfessionalProfile } from './JobPostingsContext';
+import { RegisterSchema } from '@conecteja/schemas';
 
 interface AuthContextType {
   user: User | null;

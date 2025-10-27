@@ -26,6 +26,8 @@ export * from './lib/Alert';
 export * from './lib/Checkbox';
 export * from './lib/RadioButton';
 export * from './lib/Switch';
+export * from './lib/DatePicker';
+export * from './lib/AddressForm';
 
 // Navigation Components
 export * from './lib/Tabs';
@@ -42,6 +44,7 @@ export * from './lib/SubscriptionCard';
 export * from './lib/StatCard';
 export * from './lib/BookingCard';
 export * from './lib/JobPostingCard';
+export * from './lib/JobPreviewCard';
 export * from './lib/FilterChip';
 export * from './lib/LocationTag';
 export * from './lib/PriceTag';

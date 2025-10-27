@@ -1,14 +1,15 @@
 /** @jsxImportSource nativewind */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView, NativeScrollEvent, NativeSyntheticEvent, Animated } from 'react-native';
+import { View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView, NativeScrollEvent, NativeSyntheticEvent, Animated, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, MoreVertical, Paperclip, Send, ChevronDown } from 'lucide-react-native';
+import { ChevronLeft, MoreVertical, Paperclip, Send, ChevronDown, CheckCircle, XCircle, Shield, AlertTriangle } from 'lucide-react-native';
 import {
   Screen,
   Text,
   Avatar,
   ChatBubble,
   Input,
+  JobPreviewCard,
 } from '@conecteja/ui-mobile';
 import { useChats } from '../../contexts/ChatsContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,9 +35,25 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
     sendMessage,
     setPendingConversation,
     markConversationMessagesAsRead,
+    closeContract,
+    endConversation,
+    blockProfessional,
+    reportProfessional,
   } = useChats();
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
+  const [showActionsModal, setShowActionsModal] = useState(false);
+  const [isContractClosed, setIsContractClosed] = useState(false);
+  const [isConversationEnded, setIsConversationEnded] = useState(false);
+  const [isProfessionalBlocked, setIsProfessionalBlocked] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    confirmText: string;
+    onConfirm: () => void;
+    isDestructive?: boolean;
+  } | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const [scrollViewReady, setScrollViewReady] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -144,7 +161,7 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
     if (scrollViewRef.current) {
       try {
         scrollAction();
-      } catch (error) {
+      } catch {
         // Silently handle scroll errors during navigation
         if (attempts < maxAttempts && isMountedRef.current) {
           setTimeout(() =>
@@ -200,7 +217,7 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
       fetchMessages(conversationId);
     } else if (isPendingConversation) {
       // Pending conversation - set it up for display
-      setPendingConversation(clientId, professionalId, professionalName, professionalAvatar);
+      setPendingConversation(clientId!, professionalId!, 'pending', professionalName, professionalAvatar);
       hasScrolledInitiallyRef.current = true; // No need to scroll for empty conversation
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -284,7 +301,7 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
           null,
           messageText.trim(),
           'text',
-          { clientId, professionalId }
+          { clientId: clientId!, professionalId: professionalId!, jobId: 'pending' }
         );
 
         // Update route params with the new conversationId to avoid recreating
@@ -315,6 +332,144 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
     }
   };
 
+  // Helper function to show confirmation modal (works on web and mobile)
+  const showConfirmation = (title: string, message: string, confirmText: string, onConfirm: () => void, isDestructive = false) => {
+    setConfirmAction({
+      title,
+      message,
+      confirmText,
+      onConfirm,
+      isDestructive,
+    });
+    setShowConfirmModal(true);
+  };
+
+  // Quick actions for client
+  const handleCloseContract = () => {
+    if (!currentConversation?.job_posting?.id || !currentConversation?.professional_profile?.id) {
+      console.error('Missing job posting or professional profile');
+      return;
+    }
+
+    showConfirmation(
+      t('chats.actions.closeContractDetails.title'),
+      t('chats.actions.closeContractDetails.message'),
+      t('chats.actions.closeContractDetails.confirm'),
+      async () => {
+        setShowConfirmModal(false);
+        const success = await closeContract(
+          currentConversation.job_posting!.id,
+          currentConversation.professional_profile.id,
+          currentConversation.id
+        );
+
+        if (success) {
+          setIsContractClosed(true);
+          // Show success message
+          showConfirmation(
+            t('chats.actions.closeContractDetails.success.title'),
+            t('chats.actions.closeContractDetails.success.message'),
+            t('common.ok'),
+            () => setShowConfirmModal(false)
+          );
+        }
+      }
+    );
+  };
+
+  const handleEndConversation = () => {
+    if (!currentConversation?.id) {
+      console.error('Missing conversation ID');
+      return;
+    }
+
+    showConfirmation(
+      t('chats.actions.endConversationDetails.title'),
+      t('chats.actions.endConversationDetails.message'),
+      t('chats.actions.endConversationDetails.confirm'),
+      async () => {
+        setShowConfirmModal(false);
+        const success = await endConversation(currentConversation.id);
+
+        if (success) {
+          setIsConversationEnded(true);
+          // Show success message
+          showConfirmation(
+            t('chats.actions.endConversationDetails.success.title'),
+            t('chats.actions.endConversationDetails.success.message'),
+            t('common.ok'),
+            () => setShowConfirmModal(false)
+          );
+        }
+      },
+      true // isDestructive
+    );
+  };
+
+  const handleBlockProfessional = () => {
+    if (!currentConversation?.professional_profile?.id) {
+      console.error('Missing professional profile');
+      return;
+    }
+
+    showConfirmation(
+      t('chats.actions.blockProfessionalDetails.title'),
+      t('chats.actions.blockProfessionalDetails.message'),
+      t('chats.actions.blockProfessionalDetails.confirm'),
+      async () => {
+        setShowConfirmModal(false);
+        const success = await blockProfessional(
+          currentConversation.professional_profile.id,
+          'Blocked from chat'
+        );
+
+        if (success) {
+          setIsProfessionalBlocked(true);
+          // Show success message
+          showConfirmation(
+            t('chats.actions.blockProfessionalDetails.success.title'),
+            t('chats.actions.blockProfessionalDetails.success.message'),
+            t('common.ok'),
+            () => setShowConfirmModal(false)
+          );
+        }
+      },
+      true // isDestructive
+    );
+  };
+
+  const handleReportProfessional = () => {
+    if (!currentConversation?.professional_profile?.id) {
+      console.error('Missing professional profile');
+      return;
+    }
+
+    showConfirmation(
+      t('chats.actions.reportProfessionalDetails.title'),
+      t('chats.actions.reportProfessionalDetails.message'),
+      t('chats.actions.reportProfessionalDetails.confirm'),
+      async () => {
+        setShowConfirmModal(false);
+        const success = await reportProfessional(
+          currentConversation.professional_profile.id,
+          'Inappropriate behavior',
+          'Reported from chat conversation'
+        );
+
+        if (success) {
+          // Show success message
+          showConfirmation(
+            t('chats.actions.reportProfessionalDetails.success.title'),
+            t('chats.actions.reportProfessionalDetails.success.message'),
+            t('common.ok'),
+            () => setShowConfirmModal(false)
+          );
+        }
+      },
+      true // isDestructive
+    );
+  };
+
   if (loading && !currentConversation) {
     return (
       <Screen className="bg-gray-50" contentContainerClassName="flex-1 items-center justify-center">
@@ -342,26 +497,56 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
     ? new Date().getTime() - new Date(otherProfile.last_seen_at).getTime() < 5 * 60 * 1000 // 5 minutes
     : false;
 
+  // Check if current user is the client
+  const isClient = user?.id === currentConversation?.client_profile_id;
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="bg-white border-b border-gray-200 px-4 py-3">
-        <View className="flex-row items-center">
-          <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
-            <ChevronLeft size={28} color="#374151" />
-          </TouchableOpacity>
-          <Avatar name={otherProfile?.full_name || ''} size="sm" uri={otherProfile?.avatar_url} />
-          <View className="flex-1 ml-3">
-            <Text variant="body" weight="bold">
-              {otherProfile?.full_name || t('professional.defaults.name')}
-            </Text>
-            <Text variant="caption" color="muted">
-              {isOnline ? t('chats.detail.online') : ''}
-            </Text>
+      <View className="bg-white border-b border-gray-200">
+        {/* Header with user info */}
+        <View className="px-4 py-3">
+          <View className="flex-row items-center">
+            <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
+              <ChevronLeft size={28} color="#374151" />
+            </TouchableOpacity>
+            <Avatar name={otherProfile?.full_name || ''} size="sm" uri={otherProfile?.avatar_url} />
+            <View className="flex-1 ml-3">
+              <Text variant="body" weight="bold">
+                {otherProfile?.full_name || t('professional.defaults.name')}
+              </Text>
+              <Text variant="caption" color="muted">
+                {isOnline ? t('chats.detail.online') : ''}
+              </Text>
+            </View>
+            <TouchableOpacity>
+              <MoreVertical size={24} color="#6B7280" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity>
-            <MoreVertical size={24} color="#6B7280" />
-          </TouchableOpacity>
         </View>
+
+        {/* Job Preview Card */}
+        {currentConversation?.job_posting && (
+          <View className="px-4 pb-3">
+            <JobPreviewCard
+              jobId={currentConversation.job_posting.id}
+              title={currentConversation.job_posting.title}
+              description={currentConversation.job_posting.description}
+              budgetMin={currentConversation.job_posting.budget_min!}
+              budgetMax={currentConversation.job_posting.budget_max!}
+              budgetType={currentConversation.job_posting.budget_type}
+              location={currentConversation.job_posting.location_address!}
+              status={currentConversation.job_posting.status}
+              compact={true}
+              onPress={() => {
+                if (currentConversation.job_posting?.id) {
+                  navigation.navigate('JobDetail', {
+                    jobId: currentConversation.job_posting.id
+                  });
+                }
+              }}
+            />
+          </View>
+        )}
       </View>
 
       <KeyboardAvoidingView
@@ -467,6 +652,109 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
           )}
         </View>
 
+        {/* Quick Actions for Client */}
+        {isClient && !isConversationEnded && !isProfessionalBlocked && (
+          <View className="bg-white border-t border-gray-200 px-4 py-3">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text variant="caption" weight="medium" color="muted">
+                {t('chats.actions.title')}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowActionsModal(true)}
+                className="flex-row items-center"
+              >
+                <Text variant="caption" weight="medium" className="text-blue-600 mr-1">
+                  {t('chats.actions.more')}
+                </Text>
+                <MoreVertical size={16} color="#2563eb" />
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex-row space-x-2">
+              {/* Close Contract */}
+              <TouchableOpacity
+                onPress={handleCloseContract}
+                className={`flex-1 flex-row items-center justify-center py-2 px-3 rounded-lg border ${
+                  isContractClosed
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-white border-gray-200'
+                }`}
+                disabled={isContractClosed}
+              >
+                <CheckCircle
+                  size={16}
+                  color={isContractClosed ? '#10b981' : '#6b7280'}
+                />
+                <Text
+                  variant="caption"
+                  weight="medium"
+                  className={`ml-1 ${
+                    isContractClosed ? 'text-green-600' : 'text-gray-600'
+                  }`}
+                >
+                  {isContractClosed ? t('chats.actions.contractClosed') : t('chats.actions.closeContract')}
+                </Text>
+              </TouchableOpacity>
+
+              {/* End Conversation */}
+              <TouchableOpacity
+                onPress={handleEndConversation}
+                className="flex-1 flex-row items-center justify-center py-2 px-3 rounded-lg border bg-white border-gray-200"
+              >
+                <XCircle size={16} color="#6b7280" />
+                <Text variant="caption" weight="medium" className="ml-1 text-gray-600">
+                  {t('chats.actions.endConversation')}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Block Professional */}
+              <TouchableOpacity
+                onPress={handleBlockProfessional}
+                className="flex-1 flex-row items-center justify-center py-2 px-3 rounded-lg border bg-white border-gray-200"
+              >
+                <Shield size={16} color="#6b7280" />
+                <Text variant="caption" weight="medium" className="ml-1 text-gray-600">
+                  {t('chats.actions.block')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Status Messages */}
+        {isContractClosed && (
+          <View className="bg-green-50 border-t border-green-200 px-4 py-2">
+            <View className="flex-row items-center">
+              <CheckCircle size={16} color="#10b981" />
+              <Text variant="caption" weight="medium" className="ml-2 text-green-800">
+                {t('chats.status.contractClosed')}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {isConversationEnded && (
+          <View className="bg-gray-50 border-t border-gray-200 px-4 py-2">
+            <View className="flex-row items-center">
+              <XCircle size={16} color="#6b7280" />
+              <Text variant="caption" weight="medium" className="ml-2 text-gray-600">
+                {t('chats.status.conversationEnded')}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {isProfessionalBlocked && (
+          <View className="bg-red-50 border-t border-red-200 px-4 py-2">
+            <View className="flex-row items-center">
+              <Shield size={16} color="#ef4444" />
+              <Text variant="caption" weight="medium" className="ml-2 text-red-800">
+                {t('chats.status.professionalBlocked')}
+              </Text>
+            </View>
+          </View>
+        )}
+
         <View className="bg-white border-t border-gray-200 px-4 py-3">
           <View className="flex-row items-center">
             <Input
@@ -496,6 +784,165 @@ export default function ChatDetailScreen({ navigation, route }: ChatDetailScreen
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Actions Modal */}
+      <Modal
+        visible={showActionsModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowActionsModal(false)}
+      >
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="bg-white rounded-t-3xl p-6 pb-8">
+            <Text variant="h3" weight="bold" className="mb-4">
+              {t('chats.actions.modal.title')}
+            </Text>
+
+            <View className="space-y-3">
+              {/* Close Contract */}
+              <TouchableOpacity
+                onPress={() => {
+                  setShowActionsModal(false);
+                  handleCloseContract();
+                }}
+                className={`flex-row items-center p-4 rounded-lg border ${
+                  isContractClosed
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-white border-gray-200'
+                }`}
+                disabled={isContractClosed}
+              >
+                <CheckCircle
+                  size={20}
+                  color={isContractClosed ? '#10b981' : '#6b7280'}
+                />
+                <View className="ml-3 flex-1">
+                  <Text
+                    variant="body"
+                    weight="medium"
+                    className={isContractClosed ? 'text-green-600' : 'text-gray-900'}
+                  >
+                    {isContractClosed ? t('chats.actions.contractClosed') : t('chats.actions.closeContract')}
+                  </Text>
+                  <Text variant="caption" color="muted">
+                    {t('chats.actions.closeContractDetails.description')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* End Conversation */}
+              <TouchableOpacity
+                onPress={() => {
+                  setShowActionsModal(false);
+                  handleEndConversation();
+                }}
+                className="flex-row items-center p-4 rounded-lg border bg-white border-gray-200"
+              >
+                <XCircle size={20} color="#6b7280" />
+                <View className="ml-3 flex-1">
+                  <Text variant="body" weight="medium" className="text-gray-900">
+                    {t('chats.actions.endConversation')}
+                  </Text>
+                  <Text variant="caption" color="muted">
+                    {t('chats.actions.endConversationDetails.description')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Block Professional */}
+              <TouchableOpacity
+                onPress={() => {
+                  setShowActionsModal(false);
+                  handleBlockProfessional();
+                }}
+                className="flex-row items-center p-4 rounded-lg border bg-white border-gray-200"
+              >
+                <Shield size={20} color="#6b7280" />
+                <View className="ml-3 flex-1">
+                  <Text variant="body" weight="medium" className="text-gray-900">
+                    {t('chats.actions.blockProfessional')}
+                  </Text>
+                  <Text variant="caption" color="muted">
+                    {t('chats.actions.blockProfessionalDetails.description')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Report Professional */}
+              <TouchableOpacity
+                onPress={() => {
+                  setShowActionsModal(false);
+                  handleReportProfessional();
+                }}
+                className="flex-row items-center p-4 rounded-lg border bg-white border-gray-200"
+              >
+                <AlertTriangle size={20} color="#6b7280" />
+                <View className="ml-3 flex-1">
+                  <Text variant="body" weight="medium" className="text-gray-900">
+                    {t('chats.actions.reportProfessional')}
+                  </Text>
+                  <Text variant="caption" color="muted">
+                    {t('chats.actions.reportProfessionalDetails.description')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              className="mt-6 bg-gray-200 py-4 rounded-xl active:bg-gray-300"
+              onPress={() => setShowActionsModal(false)}
+            >
+              <Text className="text-gray-700 font-semibold text-center text-base">
+                {t('common.cancel')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Confirmation Modal */}
+      <Modal
+        visible={showConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white rounded-2xl p-6 mx-4 max-w-sm w-full">
+            <Text variant="h3" weight="bold" className="mb-3 text-center">
+              {confirmAction?.title}
+            </Text>
+            <Text variant="body" color="muted" className="mb-6 text-center leading-6">
+              {confirmAction?.message}
+            </Text>
+
+            <View className="flex-row space-x-3">
+              <TouchableOpacity
+                className="flex-1 bg-gray-200 py-3 rounded-xl active:bg-gray-300"
+                onPress={() => setShowConfirmModal(false)}
+              >
+                <Text className="text-gray-700 font-semibold text-center text-base">
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className={`flex-1 py-3 rounded-xl ${
+                  confirmAction?.isDestructive
+                    ? 'bg-red-500 active:bg-red-600'
+                    : 'bg-blue-500 active:bg-blue-600'
+                }`}
+                onPress={() => {
+                  confirmAction?.onConfirm();
+                }}
+              >
+                <Text className="text-white font-semibold text-center text-base">
+                  {confirmAction?.confirmText}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
